@@ -1,0 +1,692 @@
+---
+title: "LINEAR PROBABILITY, LOGIT AND PROBIT MODELS"
+output: html_document
+date: "2023-11-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(dplyr)
+library(Hmisc)
+library(ggplot2)
+library(psych)
+library(margins)
+library(effects)
+library(marginaleffects)
+library(lmtest)
+library(sandwich)
+```
+
+load data
+
+```{r}
+ saf<- read_dta("Data Files/ps2030.safrica.dta")
+```
+
+recode variable
+
+```{r}
+saf <- mutate(saf, locdich = ifelse(locpart == 0, 0, 1))
+
+# Label the variable
+label(saf$locdich) <- "Participated in Any Local Activity"
+
+table(saf$locdich)
+```
+
+scatter plot
+
+```{r}
+# Scatter plot with jitter and linear fit
+ggplot(saf, aes(x = educ1, y = locdich)) +
+  geom_jitter(width = 0.5, height = 0.1) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Scatter plot of locdich and educ1",
+       x = "educ1",
+       y = "locdich")+
+  scale_y_continuous(breaks = seq(0,1,0.2))
+```
+
+linear model
+
+```{r}
+lm_loc<-lm(locdich~ educ1, data=saf)
+summary(lm_loc)
+```
+
+prediction
+
+```{r}
+saf$lpmpred<-lm_loc$fitted.values
+describe(saf$lpmpred[saf$educ1 == 1])
+describe(saf$lpmpred[saf$educ1 == 3])
+describe(saf$lpmpred[saf$educ1 == 5])
+```
+
+margins
+
+```{r}
+avg_predictions(lm_loc,variables = list(educ1 = seq(1,7, by=2)))
+
+```
+
+Group by educ1 and calculate mean for lpmpred and locdich
+
+```{r}
+m <- saf %>%
+  group_by(educ1) %>%
+  summarise(mean_lpmpred = mean(lpmpred),
+            mean_locdich = mean(locdich))
+print(m)
+```
+
+```{r}
+saf$lpmres<-lm_loc$residuals
+```
+
+SHOW NON-NORMALITY AND HETEROSKEDASTICITY
+
+```{r}
+# rvfplot with jitter(20) and yline(0)
+ggplot(saf, aes(x = lpmpred, y = lpmres)) +
+  geom_jitter(width = 0.1, height = 0.2) +
+  geom_hline(yintercept = 0, linetype = "solid", color = "red") +
+  labs(title = "Residuals vs Fitted Values",
+       x = "Fitted Values",
+       y = "Residuals")
+```
+
+histogram
+
+```{r}
+# hist of lpmres
+ggplot(saf, aes(x = lpmres)) +
+  geom_histogram(bins = 29, breaks = seq(-0.97611231, 0.7, by = .05427739), fill = "yellow", color = "black", alpha = 0.7, aes(y = ..density..)) +
+  labs(title = "Histogram of Fitted Values", x = "Residuals", y = "Density") 
+```
+
+SHOW OUT-OF-BOUNDS PREDICTIONS
+
+```{r}
+lm_loc2<-lm(locdich~ educ1 + groups + know + times, data=saf)
+summary(lm_loc2)
+saf$lpmpred2<-lm_loc2$fitted.values
+saf$lpmpred2[saf$lpmpred2 <= 0 | saf$lpmpred2 >= 1]
+```
+
+##GOLDBERGER LPM MODEL WITH WEIGHTED LEAST SQUARES
+
+```{r}
+# Generate lpmpred3 as lpmpred2
+saf <- mutate(saf, lpmpred3 = lpmpred2)
+
+# Replace values in lpmpred3
+saf$lpmpred3[saf$lpmpred2 < 0] <- 0.001
+saf$lpmpred3[saf$lpmpred2 > 1] <- 0.995
+# Generate wt
+saf <- mutate(saf, wt = 1 / (lpmpred3 * (1 - lpmpred3)))
+
+# Regression
+lm_loc_w <- lm(locdich ~ educ1 + groups + know + times, data = saf, weights = wt)
+summary(lm_loc_w)
+
+# Generate lpmpred4
+saf <- mutate(saf, lpmpred4 = coef(lm_loc_w)[1] + coef(lm_loc_w)[2] * educ1 + 
+                             coef(lm_loc_w)[3] * groups + coef(lm_loc_w)[4] * know + 
+                             coef(lm_loc_w)[5] * times)
+
+cor(saf$lpmpred4, saf$locdich)
+```
+
+0.4073\^2 is the R-SQUARED IN THE ORIGINAL UNITS OF LOCAL, NOT THE "WEIGHTED" UNITS AS IN THE WLS MODEL
+
+## Logit
+
+```{r}
+# Logistic regression
+lg_loc <- glm(locdich ~ times, data = saf, family = binomial)
+summary(lg_loc)
+
+# Predicted probabilities
+saf$plogit  <- predict(lg_loc, type = "response")
+
+# Predicted logits (index function xb)
+saf$logodds <- predict(lg_loc, type = "link")
+
+# Generate odds
+saf <- within(saf, {
+  odds1 <- exp(logodds)
+})
+
+# Simulate probability of 1 for a person at times=0
+prob_times_0 <- exp(coef(lg_loc)[1] + coef(lg_loc)[2] * 0) / (1 + exp(coef(lg_loc)[1] + coef(lg_loc)[2] * 0))
+cat("Simulated probability of 1 for a person at times=0:", prob_times_0, "\n")
+
+# Simulate probability of 1 for a person at times=4
+prob_times_4 <- exp(coef(lg_loc)[1] + coef(lg_loc)[2] * 4) / (1 + exp(coef(lg_loc)[1] + coef(lg_loc)[2] * 4))
+cat("Simulated probability of 1 for a person at times=4:", prob_times_4, "\n")
+
+summary_table <- saf %>%
+  group_by(times) %>%
+  summarise(mean_plogit = mean(plogit),
+            mean_odds1 = mean(odds1),
+            mean_logodds = mean(logodds))
+
+# Display the summary table
+print(summary_table)
+```
+
+margins:
+
+```{r}
+
+preloc_lg<-avg_predictions(lg_loc, type="response", variables = list(times = seq(0, 4, by = 1)))
+
+
+# plot with no points
+ggplot(as.data.frame(preloc_lg), aes(x = times, y = estimate)) +
+  geom_point()+
+  geom_line() +
+  geom_errorbar(aes(ymin = estimate - 2*std.error, ymax = estimate + 2*std.error), alpha = 0.5) +
+  labs(title = "Adjusted predictions",
+       x = "Times", y = "Pr(locdich)")+
+scale_x_continuous(breaks = seq(0,4,1)) +
+  scale_y_continuous(breaks = seq(0.4,0.9,0.1))
+```
+
+```{r}
+# Sort the data by 'times'
+saf <- saf[order(saf$times), ]
+
+# Plot connected line
+ggplot(saf, aes(x = times, y = plogit)) +
+  geom_point()+
+  geom_line() +
+  labs(title = "Connected Line Plot of Predicted Probabilities against times",
+       x = "times",
+       y = "Predicted Probability")
+```
+
+WHAT IF INTERCEPT CHANGED FROM -.07 TO -1.0??
+
+```{r}
+# Calculate predicted probabilities with a different intercept
+intercept_new <- -1.0
+saf$plogit1 <- exp(intercept_new + coef(lg_loc)[2] * saf$times) / (1 + exp(intercept_new + coef(lg_loc)[2] * saf$times))
+
+# table 
+table_p1 <- saf %>%
+  group_by(times) %>%
+  summarise(mean_plogit = mean(plogit),
+            mean_plogit1 = mean(plogit1))
+table_p1
+
+# Plot connected lines
+ggplot(saf, aes(x = times)) +
+  geom_point(aes(y = plogit), color = "blue", size = 1)+
+  geom_line(aes(y = plogit), color = "blue", linetype = "solid", size = 0.5) +
+  geom_point(aes(y = plogit1), color = "red", size = 1) +
+  geom_line(aes(y = plogit1), color = "red", linetype = "solid", size = 0.5) +
+  labs(title = "Comparison of Predicted Probabilities with Different Intercepts",
+       x = "times",
+       y = "Predicted Probability") +
+  scale_linetype_manual(values = c("solid", "solid"), labels = c("Original Intercept", "Intercept: -1"))
+```
+
+WHAT IF INTERCEPT CHANGED FROM -.07 TO 1??
+
+```{r}
+# Calculate predicted probabilities with a different intercept
+intercept_new <- 1
+saf$plogit2 <- exp(intercept_new + coef(lg_loc)[2] * saf$times) / (1 + exp(intercept_new + coef(lg_loc)[2] * saf$times))
+
+## table 
+table_p2 <- saf %>%
+  group_by(times) %>%
+  summarise(mean_plogit = mean(plogit),
+            mean_plogit1 = mean(plogit1),
+            mean_plogit2 = mean(plogit2))
+table_p2
+
+# Plot connected lines
+ggplot(saf, aes(x = times)) +
+  geom_point(aes(y = plogit), color = "blue", size = 1)+
+  geom_line(aes(y = plogit), color = "blue", linetype = "solid", size = 0.5) +
+  geom_point(aes(y = plogit1), color = "red", size = 1) +
+  geom_line(aes(y = plogit1), color = "red", linetype = "solid", size = 0.5) + 
+    geom_point(aes(y = plogit2), color = "green", size = 1) +
+  geom_line(aes(y = plogit2), color = "green", linetype = "solid", size = 0.5) +
+  labs(title = "Comparison of Predicted Probabilities with Different Intercepts",
+       x = "times",
+       y = "Predicted Probability") +
+  scale_linetype_manual(values = c("solid", "solid", "solid"), labels = c("Original Intercept", "Intercept: -1", "Intercept: 1"))
+```
+
+WHAT IF SLOPE CHANGED FROM .47 to .10?
+
+```{r}
+# Calculate predicted probabilities with a different slope
+saf$plogit3 <- exp(coef(lg_loc)[1]+ 0.1 * saf$times) / (1 + exp(coef(lg_loc)[1] + 0.1 * saf$times))
+
+# table 
+table_p3 <- saf %>%
+  group_by(times) %>%
+  summarise(mean_plogit = mean(plogit),
+            mean_plogit3 = mean(plogit3))
+table_p3
+```
+
+WHAT IF SLOPE CHANGED FROM .47 to 1?
+
+```{r}
+# Calculate predicted probabilities with a different slope
+saf$plogit4 <- exp(coef(lg_loc)[1]+ 1 * saf$times) / (1 + exp(coef(lg_loc)[1] + 1 * saf$times))
+
+# table 
+table_p4 <- saf %>%
+  group_by(times) %>%
+  summarise(mean_plogit = mean(plogit),
+            mean_plogit3 = mean(plogit3),
+            mean_plogit4 = mean(plogit4))
+table_p4
+
+# Plot connected lines
+ggplot(saf, aes(x = times)) +
+  geom_point(aes(y = plogit), color = "blue", size = 1)+
+  geom_line(aes(y = plogit), color = "blue", linetype = "solid", size = 0.5) +
+  geom_point(aes(y = plogit3), color = "red", size = 1) +
+  geom_line(aes(y = plogit3), color = "red", linetype = "solid", size = 0.5) + 
+    geom_point(aes(y = plogit4), color = "green", size = 1) +
+  geom_line(aes(y = plogit4), color = "green", linetype = "solid", size = 0.5) +
+  labs(title = "Comparison of Predicted Probabilities with Different Intercepts",
+       x = "times",
+       y = "Predicted Probability") +
+  scale_linetype_manual(values = c("solid", "solid", "solid"), labels = c("Original slope", "Slope: 0.1", "Slope: 1"))
+
+```
+
+##Probit
+
+```{r}
+# Fit a probit model
+probit_loc <- glm(locdich ~ times, data = saf, family = binomial(link = "probit"))
+summary(probit_loc)
+
+# Predicted probabilities
+saf$pprobit <- predict(probit_loc, type = "response")
+
+# Linear predictors (z-scores)
+saf$zscore <- predict(probit_loc, type = "link")
+
+```
+
+margins:
+
+```{r}
+preloc_pro<-avg_predictions(probit_loc, type="response", variables = list(times = seq(0, 4, by = 1)))
+preloc_pro
+
+# plot with no points
+ggplot(as.data.frame(preloc_pro), aes(x = times, y = estimate)) +
+  geom_point()+
+  geom_line() +
+  geom_errorbar(aes(ymin = estimate - 2*std.error, ymax = estimate + 2*std.error), alpha = 0.5) +
+  labs(title = "Adjusted predictions",
+       x = "Times", y = "Pr(locdich)")+
+scale_x_continuous(breaks = seq(0,4,1)) +
+  scale_y_continuous(breaks = seq(0.4,0.9,0.1))
+```
+
+In R, you can use the pnorm function to calculate the cumulative distribution function (CDF) of the standard normal distribution.
+
+```{r}
+# Simulate probability of 1 for a person at times=0
+prob_times_0 <- pnorm(coef(probit_loc)[1] + coef(probit_loc)[2] * 0)
+
+# Simulate probability of 1 for a person at times=4
+prob_times_4 <- pnorm(coef(probit_loc)[1] + coef(probit_loc)[2] * 4)
+
+# Display the results
+cat("Simulated probability of 1 for a person at times=0:", prob_times_0, "\n")
+cat("Simulated probability of 1 for a person at times=4:", prob_times_4, "\n")
+```
+
+In R, you can use the qnorm function to calculate the quantile function (inverse cumulative distribution function) of the standard normal distribution. This can be used to find the z-score for a given probability.
+
+```{r}
+# Given probability
+probability = 0.483
+
+# Calculate the z-score for the given probability
+z_score1 = qnorm(probability)
+
+# Display the result
+cat("Z-score for a person with a probability of", probability, ":", z_score1, "\n")
+```
+
+change probability to 0.5
+
+```{r}
+# Given probability
+probability = 0.5
+
+# Calculate the z-score for the given probability
+z_score2 = qnorm(probability)
+
+# Display the result
+cat("Z-score for a person with a probability of", probability, ":", z_score2, "\n")
+```
+
+PREDICTED PROBABILITY AND PREDICTED Z-SCORE FOR ALL LEVELS OF X
+
+```{r}
+table_z <- saf %>%
+  group_by(times) %>%
+  summarise(mean_pprobit = mean(pprobit),
+            mean_zscore = mean(zscore))
+table_z
+```
+
+COMPARES PREDICTED PROBABILITIES FOR PROBIT AND LOGIT MODEL
+
+```{r}
+table_pz <- saf %>%
+  group_by(times) %>%
+  summarise(mean_pprobit = mean(pprobit),
+            mean_plogit = mean(plogit))
+table_pz
+```
+
+##INTERPRETATION OF COEFFICIENTS ###ODDS AND FACTOR CHANGE IN ODDS INTERPRETATION IN LOGIT
+
+```{r}
+# Fit a logistic regression model
+lg_loc_k <- glm(locdich ~ know, data = saf, family = binomial)
+summary(lg_loc_k)
+# SHOWS THE PROBABILITY FOR SOMEONE WITH NO KNOWLEDGE(=0)
+preloc_lg_k <-avg_predictions(lg_loc_k, type="response", variables = list(know = 0))
+preloc_lg_k
+```
+
+```{r}
+# Calculate odds for a probability of 0.245
+probability <- 0.245
+odds <- probability / (1 - probability)
+
+# Display the odds
+cat("Odds for a probability of", probability, ":", odds, "\n")
+
+# Display the logit for the calculated odds
+logit <- log(odds)
+cat("Logit for a probability of", probability, ":", logit, "\n")
+```
+
+SHOWS EFFECT OF X ON THE "ODDS" BY EXPONENTIATING THE B FROM THE LOGIT MODEL
+
+```{r}
+summary(lg_loc_k)$coefficients[, c("Estimate", "Std. Error", "Pr(>|z|)")]
+
+# Calculate the odds ratio
+odds_ratio <- exp(coef(lg_loc_k)['know'])
+cat("Odds ratio for 'know':", odds_ratio, "\n")
+```
+
+GENERATION OF THE PREDICTED LOG-ODDS FOR ALL LEVELS OF KNOWLEDGE
+
+```{r}
+saf$logodds2 <- predict(lg_loc_k, type = "link")
+
+# Calculate odds from the predicted log-odds
+saf$odds2 <- exp(saf$logodds2)
+
+table_log_odds <- saf %>%
+  group_by(know) %>%
+  summarise(mean_logodds2 = mean(logodds2),
+            mean_odds2 = mean(odds2))
+table_log_odds
+```
+
+In R, there isn't a direct equivalent to the or option in the Stata logit command for odds ratio interpretation in the summary function.
+
+EXERCISE: VERIFY THE CONSTANT FACTOR CHANGE IN THE ODDS
+
+```{r}
+lg_loc_m <- glm(locdich ~ know + groups + educ1 + factor(male), data = saf, family = binomial(link = "logit"))
+
+# Obtain summary statistics
+summary_stats <- summary(lg_loc_m)
+
+# Display model coefficients, standard errors, and odds ratios
+print(summary_stats$coefficients[, c("Estimate", "Std. Error", "Pr(>|z|)")])
+
+# Calculate odds ratios manually
+exp(coefficients(lg_loc_m))
+```
+
+PROBABILITY AND MARGINAL CHANGE INTERPRETATIONS
+
+```{r}
+probit_loc_m <- glm(locdich ~ groups + know + student + male, data = saf, family = binomial(link = "probit"))
+
+summary(probit_loc_m) 
+
+#calculate robust standard errors
+coeftest(probit_loc_m, vcovHC(probit_loc_m, type = "HC1"))
+
+# standard errors are slightly different from those in STATA
+```
+
+MER: All VARIABLES AT THEIR MINIMUM
+
+```{r}
+avg_predictions(probit_loc_m, type = "response",variables = list(groups = 0, know = 0, student = 0, male = 0))
+```
+
+MER: ALL VARIABLES AT THEIR MAXIMUM
+
+```{r}
+
+avg_predictions(probit_loc_m, type = "response",variables = list(groups = 5, know = 8, student = 1, male = 1))
+
+```
+
+CHANGES IN PREDICTED PROBABILITIES: MARGINAL CHANGE
+
+```{r}
+# ALL OTHER VARIABLES AT THIER OBSERVED VALUES
+summary(margins(probit_loc_m, all = TRUE))
+# ALL OTHER VARIABLES SET AT THEIR MEANS
+summary(margins(probit_loc_m, all = TRUE, at = list(groups = mean(saf$groups), know=mean(saf$know), student =mean(saf$student) , male = mean(saf$male))))
+        
+```
+
+CHANGES IN PREDICTED PROBABILITIES: DISCRETE CHANGE
+
+MER: RANGE OF GROUP MEMBERSHIPS
+
+DISCRETE CHANGE FROM 0 to 5 GROUPS USING MARGINAL EFFECTS AT MEAN APPROACH:
+
+```{r}
+avg_predictions(probit_loc_m, type = "response",newdata="mean", variables = list(groups = c(0,5)))
+
+```
+
+DISCRETE CHANGE FROM 0 to 5 GROUPS, HOLDING OTHER VARS AT OBSERVED SAMPLE VALUES
+
+```{r}
+avg_predictions(probit_loc_m, type = "response",variables = list(groups = c(0,5)))
+
+```
+
+SET OTHER VARIABLES TO THEIR MINIMUM AND MAXIMUM
+
+```{r}
+#DIFFERENCE BETWEEN MIN AND MAX ON GROUPS, HOLDING OTHER VARS AT MINIMUM
+avg_predictions(probit_loc_m, type = "response",variables = list(groups = c(0,5), know = 0, student = 0, male = 0))
+
+
+# DIFFERENCE BETWEEN MIN AND MAX ON GROUPS, HOLDING OTHER VARS AT MAX
+avg_predictions(probit_loc_m, type = "response",variables = list(groups = c(0,5), know = 8, student = 1, male = 1))
+
+```
+
+GENERATE FULL DISCRETE AND MARGINAL CHANGE INFORMATION
+
+```{r}
+# margins
+summary(margins(probit_loc_m, all = TRUE))
+# when x+1, what is the change of y (observed values)
+avg_comparisons(probit_loc_m, type="response") 
+# when x+sd, what is the change of y (observed values)
+avg_comparisons(probit_loc_m, type="response", variables = list(groups = sd(saf$groups), know=sd(saf$know)))
+```
+
+FOR DISCRETE CHANGES CENTERED AROUND MEAN
+
+```{r}
+# define a funtion as center_diff for centering the change (change by 1)
+center_diff <- \(x) data.frame(x - 0.5, x + 0.5)
+avg_comparisons( 
+  probit_loc_m,
+  variables = list(groups = center_diff))
+
+avg_comparisons( 
+  probit_loc_m,
+  variables = list(know = center_diff))
+
+#alternative way to do this without defining a new function
+avg_comparisons(
+  probit_loc_m,
+  variables = list(groups = data.frame(low=saf$groups-0.5, high=saf$groups+0.5)))
+```
+
+```{r}
+# define a funtion as center_diff for centering the change (change by sd)
+center_diff_sd <- \(x) data.frame(x - 0.5*sd(x), x + 0.5*sd(x))
+avg_comparisons( 
+  probit_loc_m, type="response",
+  variables = list(groups = center_diff_sd))
+
+avg_comparisons( 
+  probit_loc_m,type="response",
+  variables = list(know = center_diff_sd))
+```
+
+FOR DISCRETE CHANGES CENTERED AROUND MEAN, OTHER VARIABLES HELD AT MEAN
+
+```{r}
+# when x+1, what is the change of y (at mean)
+avg_comparisons(probit_loc_m, type="response", newdata="mean",variables = list(groups = center_diff)) 
+
+avg_comparisons(probit_loc_m, type="response", newdata="mean",variables = list(know = center_diff)) 
+
+# when x+sd, what is the change of y (at mean)
+avg_comparisons(
+  probit_loc_m,newdata="mean", type="response", variables=list(groups="sd", know="sd"))
+
+#marginal effect 
+avg_slopes(probit_loc_m,newdata="mean")
+
+```
+
+You can also calculate these marginal effects mannually
+
+```{r}
+# margins
+summary(margins(probit_loc_m, all = TRUE))
+
+# take groups as an example
+# when x+1, what is the change of y (observed values)
+
+# Predicted probabilities at the original value of x
+saf$predicted_probs_original <- predict(probit_loc_m, type = "response")
+
+# Predicted probabilities at x + 1
+saf$predicted_probs_x_plus_1 <- predict(probit_loc_m, newdata = transform(saf, groups = saf$groups+1) , type = "response")
+
+#Predicted probabilities at x + SD(x)
+saf$predicted_probs_x_plus_sd <- predict(probit_loc_m, newdata = transform(saf, groups = saf$groups + sd(saf$groups)), type = "response")
+
+
+# Change when x increases by one unit
+mean(saf$predicted_probs_x_plus_1 - saf$predicted_probs_original)
+
+# Change when x increases by one SD
+mean(saf$predicted_probs_x_plus_sd - saf$predicted_probs_original)
+```
+
+FOR DISCRETE CHANGES CENTERED AROUND MEAN
+
+```{r}
+# when x+1, what is the change of y (observed values)
+
+# Predicted probabilities at the original value of x
+saf$predicted_probs_plus_1_l <- predict(probit_loc_m, newdata = transform(saf, groups = saf$groups-0.5), type = "response")
+
+# Predicted probabilities at x + 1
+saf$predicted_probs_x_plus_1_h <- predict(probit_loc_m, newdata = transform(saf, groups = saf$groups+0.5) , type = "response")
+
+#Predicted probabilities at x + SD(x)
+saf$predicted_probs_x_plus_sd_l <- predict(probit_loc_m, newdata = transform(saf, groups = saf$groups - sd(saf$groups)/2), type = "response")
+
+saf$predicted_probs_x_plus_sd_h <- predict(probit_loc_m, newdata = transform(saf, groups = saf$groups + sd(saf$groups)/2), type = "response")
+
+# Change when x increases by one unit
+mean(saf$predicted_probs_x_plus_1_h - saf$predicted_probs_plus_1_l)
+
+# Change when x increases by one SD
+mean(saf$predicted_probs_x_plus_sd_h - saf$predicted_probs_x_plus_sd_l)
+```
+
+FOR DISCRETE CHANGES CENTERED AROUND MEAN, OTHER VARIABLES HELD AT MEAN
+
+```{r}
+# when x+1, what is the change of y (observed values)
+
+# Predicted probabilities at the original value of x
+saf$predicted_probs_plus_1_l_m <- predict(probit_loc_m, newdata = transform(saf, groups = mean(saf$groups)-0.5, know=mean(saf$know), student=mean(saf$student), male=mean(saf$male)), type = "response")
+
+# Predicted probabilities at x + 1
+saf$predicted_probs_x_plus_1_h_m <- predict(probit_loc_m, newdata = transform(saf, groups = mean(saf$groups)+0.5, know=mean(saf$know), student=mean(saf$student), male=mean(saf$male)) , type = "response")
+
+#Predicted probabilities at x + SD(x)
+saf$predicted_probs_x_plus_sd_l_m <- predict(probit_loc_m, newdata = transform(saf, groups = mean(saf$groups) - sd(saf$groups)/2, know=mean(saf$know), student=mean(saf$student), male=mean(saf$male)), type = "response")
+
+saf$predicted_probs_x_plus_sd_h_m <- predict(probit_loc_m, newdata = transform(saf, groups = mean(saf$groups) + sd(saf$groups)/2, know=mean(saf$know), student=mean(saf$student), male=mean(saf$male)), type = "response")
+
+# Change when x increases by one unit
+mean(saf$predicted_probs_x_plus_1_h_m - saf$predicted_probs_plus_1_l_m)
+
+# Change when x increases by one SD
+mean(saf$predicted_probs_x_plus_sd_h_m - saf$predicted_probs_x_plus_sd_l_m)
+```
+
+GIVE PREDICTED PROBABILITIES FOR DIFFERENT CATEGORIES OF DUMMY VARIABLES, REST AT MEAN OR OBSERVED VALUES
+
+```{r}
+summary(probit_loc_m)
+avg_predictions(probit_loc_m, type = "response",variables = list(male = c(0,1)))
+
+avg_predictions(probit_loc_m, type = "response",variables = list(student = c(0,1)))
+
+predictions(probit_loc_m, type = "response",newdata = "mean", variables = list(male = c(0,1)))
+predictions(probit_loc_m, type = "response",newdata = "mean", variables = list(student = c(0,1)))
+
+avg_predictions(probit_loc_m, type = "response",variables = list(male = c(0,1), student=c(0, 1)))
+
+```
+
+### LATENT VARIABLE Y\* INTERPRETATION
+
+```{r}
+probit_loc_m2 <- glm(locdich ~ educ1 + know + groups+ student + male, data = saf, family = binomial(link = "probit"))
+
+summary_m2<-summary(probit_loc_m2) 
+
+# Display model coefficients, standard errors, and odds ratios
+print(summary_m2$coefficients[, c("Estimate", "Std. Error","z value", "Pr(>|z|)")])
+
+```
+
+Do the manual calculation as do file suggests.

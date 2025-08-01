@@ -1,0 +1,299 @@
+---
+title: "Ordered probit and logit model"
+output: html_document
+date: "2023-11-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(dplyr)
+library(Hmisc)
+library(ggplot2)
+library(psych)
+library(margins)
+library(marginaleffects)
+library(lmtest)
+library(sandwich)
+library(modelsummary)
+library(MASS)
+library(tidyr)
+library(brant)
+```
+
+load data
+
+```{r}
+saf_data<- read_dta("Data Files/ps2030.safrica.dta")
+```
+
+## Ordered Probit Model
+
+```{r}
+table(saf_data$locpart)
+# Create trichotomized variable
+saf_data$loctri <- with(saf_data, ifelse(locpart == 0, 1,
+                             ifelse(locpart >= 1 & locpart <= 2, 2, 3)))
+table(saf_data$loctri)
+```
+
+In R, you can use the polr function from the MASS package to fit an ordered probit model:
+
+```{r}
+# Fit the ordered probit model
+oprobit_loc <- polr(as.ordered(loctri) ~ groups, data = saf_data, Hess = TRUE, method = "probit")
+summary(oprobit_loc)
+
+#PREDICTED Y* (linear prediction)
+saf_data$opred1<-oprobit_loc$lp 
+```
+
+Get the predicted probabilities for each category:
+
+```{r}
+opred_p <- predict(oprobit_loc, type="probs")
+
+saf_data$lowpar <- opred_p[,1]
+saf_data$medpar <- opred_p[,2]
+saf_data$highpar <- opred_p[,3]
+```
+
+```{r}
+summary_stats <- aggregate(cbind(opred1, lowpar, medpar, highpar) ~ groups, data = saf_data, FUN = mean, na.rm = TRUE)
+print(summary_stats)
+```
+
+PROBABILITY OF PARTICIPATION at DIFFERENT LEVELS FOR GROUPS=1
+
+```{r}
+# GETS PROBABILITY OF LOW PARTICIPATION FOR GROUPS=1
+pnorm(oprobit_loc$zeta[1] - coef(oprobit_loc) * 1)
+
+# GETS PROBABILITY OF MEDIUM PARTICIPATION FOR GROUPS=1
+pnorm(oprobit_loc$zeta[2] - coef(oprobit_loc) * 1) - pnorm(oprobit_loc$zeta[1] - coef(oprobit_loc) * 1)
+
+#GETS PROBABILITY OF HIGH PARTICIPATION FOR GROUPS=1
+1-pnorm(oprobit_loc$zeta[2] - coef(oprobit_loc) * 1) 
+```
+
+use marginaleffects package
+
+```{r}
+avg_predictions(oprobit_loc, type = "probs", variables = list(groups= 1))
+
+# Extract the average predicted probability of the third category
+#subset(pred, term == "loctri3")$predicted
+
+```
+
+GRAPHING THE PROBABILITIES OF BEING IN LOW AND HIGH CATEGORIES TO SHOW NON-LINEARITIES
+
+```{r}
+
+# Create the plot
+ggplot(saf_data[order(saf_data$groups), ], aes(x = groups, y = lowpar)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Low Participation Probability by Groups",
+       x = "Groups",
+       y = "Low Participation Probability")
+```
+
+What if someone belonged to 10 groups?
+
+```{r}
+pnorm(oprobit_loc$zeta[1] - coef(oprobit_loc) * 10)
+```
+
+```{r}
+ggplot(saf_data[order(saf_data$groups), ], aes(x = groups, y = highpar)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "High Participation Probability by Groups",
+       x = "Groups",
+       y = "High Participation Probability")
+```
+
+What if someone belonged to 10 groups?
+
+```{r}
+1-pnorm(oprobit_loc$zeta[2] - coef(oprobit_loc) * 10)
+```
+
+GRAPH ALL THREE PROBABILITIES IN ONE GRAPH
+
+```{r}
+df_long <- gather(saf_data, key = "category", value = "value", lowpar, medpar, highpar)
+
+ggplot(df_long, aes(x = groups, y = value, color = category, group = category)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Participation Probability by Groups",
+       x = "Groups",
+       y = "Participation Probability",
+       color = "Category") +
+  scale_color_brewer(palette = "Set1")
+```
+
+EXTEND TO MULTIPLE INDEPENDENT VARIABLES
+
+```{r}
+# Fit the ordered probit model with multiple variables
+oprobit_loc_m <- polr(as.ordered(loctri) ~ groups + educ1+interest+know+male+civiced, data = saf_data, Hess = TRUE, method = "probit")
+summary(oprobit_loc_m)
+```
+
+```{r}
+models<-list("Basic Model"=oprobit_loc, "Full Model"=oprobit_loc_m)
+modelsummary(models)
+anova(oprobit_loc, oprobit_loc_m, test = "Chisq")
+```
+
+GENERATE CHANGES IN PREDICTED PROBABILITIES FOR CHANGES IN ALL INDEPENDENT VARIABLES
+
+```{r}
+avg_slopes(oprobit_loc_m, type="probs") 
+# when x+1, what is the change of y (observed values)
+avg_comparisons(oprobit_loc_m, type="probs") 
+
+# when x+sd, what is the change of y (observed values)
+
+avg_comparisons(oprobit_loc_m, type="probs", variables = list(groups = sd(saf_data$groups), educ1=sd(saf_data$educ1), interest=sd(saf_data$interest),  know=sd(saf_data$know)))
+```
+
+```{r}
+# define a funtion as center_diff for centering the change (change by 1)
+center_diff <- \(x) data.frame(x - 0.5, x + 0.5)
+avg_comparisons( 
+  oprobit_loc_m,
+  variables = list(groups = center_diff, educ1 = center_diff, interest = center_diff, know = center_diff))
+```
+
+```{r}
+# define a funtion as center_diff for centering the change (change by sd)
+center_diff_sd <- \(x) data.frame(x - 0.5*sd(x), x + 0.5*sd(x))
+a<-avg_comparisons( 
+  oprobit_loc_m,
+  variables = list(groups = center_diff_sd, educ1 = center_diff_sd, interest = center_diff_sd, know = center_diff_sd))
+a
+```
+
+plot
+
+```{r}
+a$label <- ifelse(a$p.value < 0.05, 
+                                 paste0(round(a$estimate, 2), "*"), 
+                                 round(a$estimate, 2))
+
+ggplot(a, aes(x = estimate, y = term, ymin = conf.low, ymax = conf.high)) +
+  geom_pointrange() +
+  geom_text(aes(label = label), vjust = -1.5, size = 3) +
+  theme_minimal() +
+  labs(title = "Significant Marginal Effects",
+       x = "Marginal Effect",
+       y = "Predictors") 
+```
+
+EFFECTS OF X ON Y\* (USING PROBIT ONLY)
+
+```{r}
+# Obtain summary statistics
+eff_stats <- summary(oprobit_loc_m)
+
+# Display model coefficients, standard errors, and z score
+print(eff_stats$coefficients)
+
+```
+
+## ORDERED LOGIT ANALYSIS
+
+```{r}
+ologit_loc <- polr(as.ordered(loctri) ~ groups, data = saf_data, Hess = TRUE, method = "logistic")
+summary(ologit_loc)
+```
+
+GENERATE CUMULATIVE PREDICTED LOGITS FOR GROUPS=3
+
+```{r}
+# Cumulative logit for groups=3, category 1
+c1<-ologit_loc$zeta[1] - coef(ologit_loc) * 3
+c1
+# Cumulative logit for groups=3, category 2
+c2<-ologit_loc$zeta[2] - coef(ologit_loc) * 3
+c2
+# CUMULATIVE PROBABILITIES FOR GROUPS=3
+exp(c1)/(1+exp(c1))
+exp(c2)/(1+exp(c2))
+```
+
+GENERATE CUMULATIVE PREDICTED LOGITS FOR GROUPS=4
+
+```{r}
+# Cumulative logit for groups=3, category 1
+c3<-ologit_loc$zeta[1] - coef(ologit_loc) * 4
+c3
+# Cumulative logit for groups=3, category 2
+c4<-ologit_loc$zeta[2] - coef(ologit_loc) * 4
+c4
+# CUMULATIVE PROBABILITIES FOR GROUPS=3
+exp(c3)/(1+exp(c3))
+exp(c4)/(1+exp(c4))
+```
+
+CREATE ALL PREDICTED PROBABILITIES AND COMPARE TO PROBIT PROBABILITIES
+
+Get the predicted probabilities for each category:
+
+```{r}
+opred_pl <- predict(ologit_loc, type="probs")
+
+saf_data$lowparl <- opred_pl[,1]
+saf_data$medparl <- opred_pl[,2]
+saf_data$highparl <- opred_pl[,3]
+```
+
+```{r}
+summary_stats2 <- aggregate(cbind(lowparl, medparl, highparl, lowpar, medpar, highpar) ~ groups, data = saf_data, FUN = mean, na.rm = TRUE)
+print(summary_stats2)
+```
+
+ODDS INTERPRETATION
+
+```{r}
+# Obtain summary statistics
+eff_stats2 <- summary(ologit_loc)
+
+# Display model coefficients, standard errors, and z score
+print(eff_stats2$coefficients)
+exp(coefficients(ologit_loc))
+```
+
+CUMULATIVE ODDS Calculation (STATA shows detailed steps and interpretations, so we skip this part here)
+
+TESTING PROPORTIONAL ODDS OR PARALLEL REGRESSION ASSUMPTIONS
+
+```{r}
+saf_data$onecat <- as.numeric(saf_data$loctri <= 1)  # 1 if loctri is 1 or below, 0 otherwise
+saf_data$twocat <- as.numeric(saf_data$loctri <= 2)  # 1 if loctri is 2 or below, 0 otherwise
+```
+
+```{r}
+logit_onecat <- glm(onecat ~ groups, family = binomial, data = saf_data)
+summary(logit_onecat)
+logit_twocat <- glm(twocat ~ groups, family = binomial, data = saf_data)
+summary(logit_twocat)
+
+```
+
+```{r}
+summary(ologit_loc)
+```
+
+Conduct Brant Test, use brant package
+
+```{r}
+brant(ologit_loc)
+```

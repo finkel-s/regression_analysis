@@ -1,0 +1,210 @@
+---
+title: "REGRESSION ADJUSTMENT AND PROPENSITY SCORE MATCHING"
+output: html_document
+date: "2023-12-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(dplyr)
+library(Hmisc)
+library(ggplot2)
+library(psych)
+library(MatchIt)
+library(devtools)
+library(lmtest)
+library(sandwich)
+```
+
+## Regression Analysis
+
+load data
+
+```{r}
+saf_data<- read_dta("Data Files/ps2030.safrica.dta")
+```
+
+CREATES A DICHOTOMOUS CIVIC EDUCATION 'TREATMENT' VARIABLE
+
+```{r}
+saf_data$treat <- as.numeric(saf_data$times > 0)
+```
+
+NAIVE 'TREATMENT' EFFECT ESTIMATE
+
+```{r}
+naive_model <- lm(polpart1 ~ treat, data = saf_data)
+summary(naive_model)
+```
+
+COVARIATE ADJUSTED EFFECT VIA MULTIPLE REGRESSION
+
+```{r}
+adjusted_model <- lm(polpart1 ~ treat + groups + interest + educ1, data = saf_data)
+summary(adjusted_model)
+```
+
+COVARIATE MEANS FOR EACH LEVEL OF TREATMENT
+
+```{r}
+summary_stats <- saf_data %>%
+  group_by(treat) %>%
+  dplyr:: summarize(mean_groups = mean(groups, na.rm = TRUE),
+            mean_interest = mean(interest, na.rm = TRUE),
+            mean_educ1 = mean(educ1, na.rm = TRUE))
+print(summary_stats)
+```
+
+```{r}
+cat("Simulated probability of 1 for a person at times=0:\n")
+3.144-2.291  
+cat("DIFFERENCE IN INTEREST:\n")
+ 3.196-2.972 
+ cat("DIFFERENCE IN EDUCATION:\n")
+ 2.899-2.861	
+```
+
+use teffectsR package in R to replicate the output of teffect command in STATA.
+
+```{r, echo=FALSE,message=FALSE}
+devtools::install_github("ohines/teffectsR")
+library(teffectsR)
+```
+
+average treatment effect
+
+```{r}
+teffect(treat~1,polpart1~groups+interest+educ1,data=saf_data,method="RA")
+```
+
+THE 'TREATMENT EFFECT ON THE TREATED' (THAT IS, THE ADJUSTED DIFFERENCE BETWEEN TREATMENT AND CONTROL USING ONLY THE TREATMENT CASES FOR THE CALCULATIONS, NOT ALL CASES)
+
+```{r}
+teffect(treat~1,polpart1~groups+interest+educ1,data=saf_data,treatment.effect="ATT", method="RA")
+```
+
+MANUAL PROPENSITY SCORE ANALYSIS
+
+```{r}
+# THIS IS THE PREDICTED PROBABILITY OF TREATMENT FOR EVERYONE, I.E., THE PROPENSITY SCORE
+treat_model <- glm(treat ~ groups + interest + educ1 + media2, family = binomial(link = "logit"), data = saf_data)
+summary(treat_model)
+
+# Predict the propensity score
+saf_data$pspred <- predict(treat_model, type = "response")
+
+# Fit the second logistic model with interaction
+# THIS IS POSSIBLY A BETTER PROPENSITY SCORE SINCE IT ADDS INTERACTIONS THAT APPEAR RELEVANT
+treat_model2 <- glm(treat ~ groups * interest + educ1 + media2, family = binomial(), data = saf_data)
+summary(treat_model2)
+
+# Predict the improved propensity score
+saf_data$pspred2 <- predict(treat_model2, type = "response")
+```
+
+```{r}
+# Summarize propensity scores for the treatment group
+summary(saf_data$pspred2[saf_data$treat == 1])
+
+# Summarize propensity scores for the control group
+summary(saf_data$pspred2[saf_data$treat == 0])
+```
+
+BASED ON THE RESULTS, WE CAN KEEP ALL CONTROL RESPONDENTS (SINCE THE LOWEST CONTROL IS STILL HIGHER THAN THE LOWEST TREATMENT UNIT). BUT WE NEED TO ELIMINATE THOSE TREATMENT CASES ABOVE .814, WHICH IS THE HIGHEST CONTROL PROPENSITY TO BE TREATED. THIS WILL ELIMINATE 8 CASES ONLY
+
+```{r}
+saf_data <- saf_data[!(saf_data$treat == 1 & saf_data$pspred2 >.814 ), ]
+```
+
+```{r}
+# Create quintiles for propensity scores
+breakpoints <- quantile(saf_data$pspred2, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
+
+# Stratify the propensity scores into 5 groups
+saf_data$psstrat <- cut(saf_data$pspred2, 
+                  breaks = breakpoints, 
+                  include.lowest = TRUE, 
+                  labels = FALSE)
+
+# Convert factor to integer for numeric labeling
+saf_data$psstrat <- as.integer(saf_data$psstrat)
+# Tabulate the propensity score stratification
+table(saf_data$psstrat)
+```
+
+CONSTRUCT MATCHES IN VARIOUS WAYS BASED ON PROPENSITY SCORE AND ASSESS COVARIATE BALANCE
+
+```{r}
+# No matching; constructing a pre-match matchit object
+m_before <- matchit(treat ~ groups * interest + educ1+media2, data = saf_data, method = NULL, distance = "logit")
+summary(m_before,un = FALSE)
+
+m_after <- matchit(treat ~ groups*interest+educ1+media2, data = saf_data, method = "nearest", distance = "glm", replace = F, ratio = 1)
+summary(m_after,un = FALSE)
+
+plot(m_after, type = "density", interactive = FALSE,
+     which.xs = ~groups+interest+educ1+media2)
+```
+
+```{r}
+m.data <- match.data(m_after)
+fit <- lm(polpart1 ~ treat, data = m.data, weights = weights)
+coeftest(fit, vcov. = vcovCL, cluster = ~subclass)
+```
+
+```{r}
+teffect(treat~groups * interest + educ1+media2,polpart1~1,data=saf_data,method="PSMatch", treatment.effect = "ATE", weights = rep(1, length(saf_data$treat)))
+# different results
+```
+
+CALCULATE TREATMENT EFFECT BY AGGREGATING EFFECTS OBTAINED FROM REGRESSION WITHIN EACH PROPENSITY SCORE STRATA
+
+```{r}
+lmList <- lapply(split(saf_data, saf_data$psstrat), function(df) lm(polpart1 ~ treat, data = df))
+lmList
+```
+
+PROPENSITY SCORE WEIGHTING TO ACHIEVE BALANCE AND TO CALCULATE TREATMENT EFFECTS
+
+```{r}
+saf_data$atewt2 <- (saf_data$treat / saf_data$pspred2) + (1 - saf_data$treat) / (1 - saf_data$pspred2)
+
+# Initialize weights for ATT
+saf_data$attwt2 <- ifelse(saf_data$treat == 1, 1, saf_data$pspred2 / (1 - saf_data$pspred2))
+```
+
+ASSESS BALANCE WITH PROPENSITY SCORE WEIGHTED DATA
+
+```{r, message=F, warning=FALSE}
+# Unweighted balance assessment
+saf_data %>%
+  group_by(treat) %>%
+  summarise(across(c(groups, interest, educ1, media2),mean, na.rm = TRUE))
+
+# Weighted balance assessment for ATE
+saf_data %>%
+  group_by(treat) %>%
+  summarise(across(c(groups, interest, educ1, media2), ~ weighted.mean(., w = atewt2, na.rm = TRUE)))
+```
+
+CALCULATE TREATMENT EFFECTS WITH INVERSE PROBABILITY WEIGHTING
+
+REGRESSION WEIGHTED BY THE PROPENSITY SCORE: ATE
+
+```{r}
+ate_ipw <- lm(polpart1 ~ treat, data = saf_data, weights = atewt2)
+summary(ate_ipw)
+
+teffect(treat~groups*interest+educ1+media2 ,polpart1~1,data=saf_data,method="IPW")
+
+```
+
+REGRESSION WEIGHTED BY THE PROPENSITY SCORE: ATT
+
+```{r}
+att_ipw <- lm(polpart1 ~ treat, data = saf_data, weights = attwt2)
+summary(att_ipw)
+
+# Method: 'IPW' only compatible with ATE in the pacakge of teffectsR. 
+```

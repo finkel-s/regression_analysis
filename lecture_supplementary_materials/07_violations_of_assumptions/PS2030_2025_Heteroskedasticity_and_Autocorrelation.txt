@@ -1,0 +1,327 @@
+---
+title: "Heteroskedasticity-autocorrelation"
+date: "2023-12-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(margins)
+library(dplyr)
+library(multcomp)
+library(survey)
+library(haven)
+library(lmtest)
+library(sandwich)
+library(skedastic)
+library(car)
+library(prais)
+```
+
+# HETEROSKEDASTICITY
+
+load data
+
+```{r}
+hetero<- read_dta("Data Files/heteroskedasticity.example.dta")
+hetero
+```
+
+## RUN REGRESSION AND LOOK AT SCATTERPLOT OF RESIDUALS
+
+```{r}
+lm_wel<-lm(welfexp~gnppc, data<-hetero)
+summary(lm_wel)
+
+# Create a data frame for ggplot
+residuals_df <- data.frame(
+  Fitted = lm_wel$fitted.values,
+  Residuals = lm_wel$residuals
+)
+
+# Create the residual vs. fitted plot using ggplot
+ggplot(residuals_df, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "solid", color = "red") +
+  labs(title = "Residuals vs. Fitted", x = "Fitted Values", y = "Residuals")
+```
+
+The above picture present large degree of heteroskedasticity
+
+## TESTS FOR STATISTICAL SIGNIFICANCE OF HETEROSKEDASTICITY
+
+GOLDFIELD-QUANDT TEST IF RESIDUAL VARIANCE RELATED MONOTONICALLY TO X
+
+```{r}
+table(hetero$gnppc)
+lm_wel_below4<-lm(welfexp ~ gnppc, data = subset(hetero, gnppc < 4))
+summary(lm_wel_below4)
+
+lm_wel_above6<-lm(welfexp ~ gnppc, data = subset(hetero, gnppc > 6))
+summary(lm_wel_above6)
+
+
+(summary(lm_wel_above6)$sigma^2) / (summary(lm_wel_below4)$sigma^2)
+
+```
+
+SO GOLDFIELD-QUANT TEST IS 124.6/7.31, WITH DEGREES OF FREEDOM (2,3)
+
+CRITICAL VALUE IS 9.55, SO WE REJECT H0 OF EQUAL RESIDUAL VARIANCE
+
+WHITE'S TEST IF IT IS UNKNOWN HOW RESIDUAL VARIANCE MAY RELATE TO X
+
+manually:
+
+```{r}
+# Extract residuals from the model
+residuals_wel <- residuals(lm_wel)
+
+# Create a new model with squared residuals as the dependent variable
+squared_residuals_model <- lm(residuals_wel^2 ~ gnppc + I(gnppc^2), data = hetero)
+
+summary(squared_residuals_model)
+
+# Extract the R-squared from the squared residuals model
+r_squared <- summary(squared_residuals_model)$r.squared
+# Calculate the White test statistic
+n <- length(residuals_wel)
+white_test_statistic <- n * r_squared
+
+# Under the null hypothesis of homoscedasticity, the test statistic follows a chi-squared distribution
+# with degrees of freedom equal to the number of regressors in the model
+degrees_of_freedom <- length(coef(lm_wel))
+white_test_p_value <- 1 - pchisq(white_test_statistic, df = degrees_of_freedom)
+
+# Print the test statistic and p-value
+cat("White Test Statistic:", white_test_statistic, "\n")
+cat("P-value:", white_test_p_value, "\n")
+```
+
+using package **skedastic** to do white test automatically
+
+```{r}
+white_test_result <- white(lm_wel)
+print(white_test_result)
+```
+
+## CORRECTING FOR HETEROSKEDASTICITY
+
+### 1. WEIGHTED LEAST SQUARES IF RESIDUAL VARIANCE RELATED MONOTONICALLY TO X
+
+```{r}
+hetero$newx=1/hetero$gnppc
+hetero$newy=hetero$welfexp/hetero$gnppc
+lm_new<-lm(newy~newx, data=hetero)
+summary(lm_new)
+
+# Create a data frame for ggplot
+residuals_new_df <- data.frame(
+  Fitted = lm_new$fitted.values,
+  Residuals = lm_new$residuals
+)
+
+# Create the residual vs. fitted plot using ggplot
+ggplot(residuals_new_df, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "solid", color = "red") +
+  labs(title = "Residuals vs. Fitted", x = "Fitted Values", y = "Residuals")
+
+```
+
+USING WEIGHTS IN STATA
+
+```{r}
+# Create a weight variable
+hetero$wt <- 1 / hetero$gnppc^2
+
+# Fit a weighted linear regression model
+lm_model_weighted <- lm(welfexp ~ gnppc, data = hetero, weights = wt)
+
+# Print the summary
+summary(lm_model_weighted)
+```
+
+BUT R-SQUARED HERE IS IN WEIGHTED UNITS, SO GENERATE MANUALLY IN ORIGINAL UNITS predict wtpred
+
+```{r}
+# Predict wtpred using the weighted regression model
+hetero$wtpred <- predict(lm_model_weighted)
+
+# Calculate the correlation between wtpred and welfexp
+correlation <- cor(hetero$wtpred, hetero$welfexp)
+
+print(correlation^2)
+```
+
+### 2. ROBUST VARIANCE ESTIMATES IF IT IS UNKNOWN HOW RESIDUAL VARIANCE MAY RELATE TO X
+
+MORE FLEXIBLE PROCEDURE THAT MANY USE NOW AS A MATTER OF COURSE using package sandwich to calculate ROBUST STANDARD ERRORS
+
+```{r}
+coeftest(lm_wel, vcov = vcovHC(lm_wel, type="HC1"))
+```
+
+use **"bank-salaries.dta**
+
+```{r}
+bank<- read_dta("Data Files/ps2030.bank-salaries.dta")
+```
+
+linear regression
+
+```{r}
+lm_sal<-lm(salnow~salbeg + edlevel + age + sex + minority,data=bank)
+summary(lm_sal)
+```
+
+draw residual vs. fitted plot
+
+```{r}
+# Create a data frame for ggplot
+residuals_sal <- data.frame(
+  Fitted = lm_sal$fitted.values,
+  Residuals = lm_sal$residuals
+)
+
+# Create the residual vs. fitted plot using ggplot
+ggplot(residuals_sal, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "solid", color = "red") +
+  labs(title = "Residuals vs. Fitted", x = "Fitted Values", y = "Residuals")
+```
+
+white test
+
+```{r}
+# include interactions for multi variable model
+white(lm_sal, interactions = TRUE, statonly = T)
+```
+
+robust standard error:
+
+```{r}
+coeftest(lm_sal, vcov = vcovHC(lm_sal, type="HC1"))
+```
+
+# AUTOCORRELATION
+
+use **"PS2030 autocorrelation.dta"**
+
+```{r}
+auto<- read_dta("Data Files/PS2030.autocorrelation.dta")
+```
+
+```{r}
+ggplot(auto, aes(x = crime, y = budget)) +
+  geom_point() +           # Add scatter points
+  geom_smooth(method = "lm", se = FALSE) +  # Add linear fit line without confidence interval
+  labs(x = "Crime", y = "Budget") +
+  scale_x_continuous(breaks = seq(5,20,5)) +
+  scale_y_continuous(breaks = seq(20,120,20))
+
+```
+
+IF AUTOCORRELATION, STANDARD ERRORS AND STATISTICAL INFERENCES FROM OLS RESULTS WILL NOT BE VALID
+
+```{r}
+lm_b <- lm(budget ~ crime, data = auto)
+summary(lm_b)
+
+auto$budres=lm_b$residuals
+auto$budfit=lm_b$fitted.values
+
+ggplot(auto, aes(x = year, y = budres)) +
+  geom_point() +           # Add scatter points
+  labs(x = "Year", y = "Residuals") +
+  scale_x_continuous(breaks = seq(1940,1980,10)) +
+  scale_y_continuous(breaks = seq(-20,20,10))
+
+```
+
+```{r}
+# Create the residual vs. fitted plot using ggplot
+ggplot(auto, aes(x = budfit, y = budres)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "solid", color = "red") +
+  labs(title = "Residuals vs. Fitted", x = "Fitted Values", y = "Residuals")
+```
+
+Durbin-Watson test
+
+```{r}
+dwtest(lm_b)
+```
+
+Breusch-Godfrey test
+
+```{r}
+bgtest(lm_b, order = 2)
+```
+
+### CALCULATION OF RHO, THE AUTOCORRELATION COEFFICIENT
+
+#### 1. FROM OLS REGRESSION OF RESIDUALS AT TIME T AND RESIDUALS AT TIME T-1
+
+```{r}
+# Lag the budget and crime variables
+auto <- auto %>%
+  mutate(budlag = lag(budget),
+         crimlag = lag(crime),
+         budlagres = lag(budres))
+# Run the regression
+lm_b_lag <- lm(budres ~ budlagres, data = auto)
+summary(lm_b_lag)
+```
+
+.52 AS ESTIMATE OF RHO
+
+#### 2. FROM MANIPULATION OF DURBAN-WATSON
+
+FROM ALGABRAIC MANIPULATION OF FORMULA: D=2(1-RHO)
+
+```{r}
+(2-dwtest(lm_b)$statistic)/2
+```
+
+### CORRECTING FOR AUTOCORRELATION WITH GENERALIZED LEAST SQUARES
+
+#### 1. manually
+
+```{r}
+# THIS GIVES THE PRAIS-WINSTON TRANSFORMATION OF THE FIRST CASE
+auto$budlag <- ifelse(is.na(auto$budlag), 14.69 * sqrt(1 - (.52^2)), auto$budlag)
+auto$crimlag <- ifelse(is.na(auto$crimlag), 3.75 * sqrt(1 - (.52^2)), auto$crimlag)
+
+# HIS GENERATES "PURGED" Y AND X VARIABLES
+auto$newx <- auto$crime - 0.52 * auto$crimlag
+auto$newy <- auto$budget - 0.52 * auto$budlag
+
+# Perform the regression
+lm_b_new <- lm(newy ~ newx, data = auto)
+
+# Print the coefficients
+summary(lm_b_new)
+
+# Transform the intercept into the original units
+transformed_intercept <- 1.74 / (1 - 0.52)
+cat("Transformed intercept into original units:", transformed_intercept, "\n")
+```
+
+#### 2. automatically
+
+use package "prais"
+
+```{r}
+prais_winsten_model <- prais_winsten(budget ~ crime, data = auto, index = "year", twostep=TRUE)
+
+coeftest(prais_winsten_model, vcov = vcovHC(prais_winsten_model, type="HC1"))
+```
+
+#### 3. NEWEY-WEST/HAC HETEROSKEDASTICITY-AUTOCORRELATION CONSISTENT STANDARD ERRORS
+
+use package **"lmtest"**
+
+```{r}
+coeftest(lm_b, vcov = NeweyWest(lm_b, lag = 5, adjust=T, prewhite = F))
+```

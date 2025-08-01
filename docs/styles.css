@@ -1,0 +1,68 @@
+
+.justify-text {
+  text-align: justify;
+}
+
+.custom-materials-table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.custom-materials-table td,
+.custom-materials-table th {
+  padding: 0.75em 1em;
+  vertical-align: middle;
+  border-bottom: 1px solid #ddd;
+  word-wrap: break-word;
+}
+
+.custom-materials-table td:nth-child(1),
+.custom-materials-table th:nth-child(1) {
+  width: 35%;
+  padding-right: 1.5em;
+}
+
+.custom-materials-table td:nth-child(2),
+.custom-materials-table th:nth-child(2) {
+  width: 45%;
+  padding-right: 1.5em;
+}
+
+.custom-materials-table td:nth-child(3),
+.custom-materials-table th:nth-child(3) {
+  width: 20%;
+  padding-right: 40px;
+}
+
+
+
+/* Thicker line under header row */
+.custom-materials-table thead th {
+  border-bottom: 2px solid #555;
+  text-align: left;
+}
+
+/* Line at the bottom of the whole table */
+.custom-materials-table tbody {
+  border-bottom: 2px solid #ccc;
+}
+
+.sidebar-navigation .quarto-color-scheme-toggle:not(.alternate) .bi::before {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='rgba(204, 209, 213, 1)' class='bi bi-toggle-off' viewBox='0 0 16 16'><path d='M11 4a4 4 0 0 1 0 8H8a4.992 4.992 0 0 0 2-4 4.992 4.992 0 0 0-2-4h3zm-6 8a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM0 8a5 5 0 0 0 5 5h6a5 5 0 0 0 0-10H5a5 5 0 0 0-5 5z'/></svg>");
+}
+
+/* Only highlight cells in the row that are NOT the first td (the Unit cell) */
+tr.unit-start.unit-highlight td:not(:first-child) {
+  background-color: #6f6f6f;
+  transition: background-color 0.5s ease-in-out;
+}
+
+tr.lecture-row.highlight {
+  background-color: #6f6f6f;
+  transition: background-color 0.5s ease-in-out;
+}
+
+:target {
+  scroll-margin-top: 100px; /* adjust depending on your header height */
+}

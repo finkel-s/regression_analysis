@@ -1,0 +1,323 @@
+---
+title: "NON-ADDITIVE AND NON-LINEAR MODELS"
+output: html_document
+date: "2023-11-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(margins)
+library(dplyr)
+library(multcomp)
+library(survey)
+library(haven)
+```
+
+## INTERACTIVE MODELS
+
+load data
+
+```{r}
+prot_data <- read_dta("Data Files/protest.homework1.dta")
+```
+
+QUESTION: DOES THE EFFECT OF POLICY DISSATISFACTION ON PROTEST INCREASE (DECREASE) AS ONE BELONGS TO MORE PROTEST-ENCOURAGING GROUPS?
+
+\*ALTERNATIVELY: DOES THE EFFECT OF BELONGING TO PROTEST-ENCOURAGING GROUPS ON PROTEST INCREASE (DECREASE) AS ONE HAS HIGHER LEVELS OF POLICY DISSATISFACTION?
+
+```{r}
+prot_data$lrv <- prot_data$vcount * prot_data$lr
+# THIS IS THE ADDITIVE MODEL
+lm_lc<-lm(legalcount ~ vcount + lr, data = prot_data)
+summary(lm_lc)
+# THIS ADDS THE INTERACTIVE EFFECT
+lm_lc_int <- lm(legalcount ~ vcount + lr + lrv, data = prot_data)
+summary(lm_lc_int)
+```
+
+TESTING THE SIGNIFICANCE OF VCOUNT AT DIFFERENT LEVELS OF LR
+
+```{r}
+#WHEN LR=1, LR=2, LR=5
+coef(lm_lc_int)
+mmat<-rbind(c(0,1,0,1),c(0,1,0,2),c(0,1,0,5)) 
+mtest<-glht(lm_lc_int,linfct = mmat)
+summary(mtest)
+```
+
+USING MARGINS AND MARGINSPLOT
+
+```{r}
+lm_lc_int2 <- lm(legalcount ~ vcount*lr, data = prot_data)
+summary(lm_lc_int2)
+```
+
+FROM PERSEPCTIVE OF CHANGING SLOPE OF VCOUNT FOR EVERY ADDITIONAL GROUP
+
+```{r}
+margins_vl<-margins::prediction(lm_lc_int2, at = list(vcount = c(0, 10), lr = seq(0, 7, by = 1)))
+margins_vl
+
+#plot
+ggplot(as.data.frame(margins_vl), aes(x = vcount, y = fitted, color = as.factor(lr), group = lr)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = fitted - 2*se.fitted, ymax =  fitted + 2*se.fitted), width = 0.2) +
+  labs(title = "Adjusted predictions",
+       x = "Count of number of policies that R is dissatisfied with government actions", y = "Estimated Marginal Means")+
+scale_x_continuous(breaks = seq(0,10,10)) +
+  scale_y_continuous(breaks = seq(0,15,5))
+```
+
+plots the slope for vcount at each level of lr
+
+```{r}
+slopv<-margins(lm_lc_int2, variables = "vcount", at = list(lr = seq(0, 7, by = 1)))
+summary(slopv)
+# plot: 
+ggplot(as_data_frame(summary(slopv)), aes(x = lr, y = AME)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Average Marginal effects of vcount",
+       x = "Integration into protest groups", y = "Effects on linear prediction")+
+scale_x_continuous(breaks = seq(0,7,1)) +
+  scale_y_continuous(breaks = seq(0.3,0.7,0.1))
+
+# plot with confidential interval
+
+ggplot(as_data_frame(summary(slopv)), aes(x = lr, y = AME)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper, alpha = 0.2)) +
+  labs(title = "Average Marginal effects of vcount",
+       x = "Integration into protest groups", y = "Effects on linear prediction")+
+scale_x_continuous(breaks = seq(0,7,1)) +
+  scale_y_continuous(breaks = seq(0,1.5,0.5))
+
+```
+
+FROM PERSEPCTIVE OF CHANGING SLOPE OF LR FOR EVERY ADDITIONAL VCOUNT
+
+the mean outcome at every second level of vcount for lr=0 and lr=7
+
+```{r}
+margins_vl2<-margins::prediction(lm_lc_int2, at = list(lr = c(0, 7), vcount = seq(0, 10, by = 2)))
+margins_vl2
+
+#plot
+ggplot(as.data.frame(margins_vl2), aes(x = lr, y = fitted, color = as.factor(vcount), group = vcount)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), width = 0.2) +
+  labs(title = "Adjusted predictions",
+       x = "Integration into protest groups", y = "Linear prediction")+
+scale_x_continuous(breaks = seq(0,7,7)) +
+  scale_y_continuous(breaks = seq(0,15,5))
+```
+
+plots the slope for lr at each level of vcount
+
+```{r}
+sloplr<-margins(lm_lc_int2, variables = "lr", at = list(vcount = seq(0, 10, by = 1)))
+summary(sloplr)
+# plot: 
+ggplot(as_data_frame(summary(sloplr)), aes(x = vcount, y = AME)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+  labs(title = "Average Marginal effects of lr",
+       x = "Vcount", y = "Effects on linear prediction")+
+scale_x_continuous(breaks = seq(0,10,1)) +
+  scale_y_continuous(breaks = seq(0.5,2,0.5))
+
+# plot with confidential interval
+
+ggplot(as_data_frame(summary(sloplr)), aes(x = vcount, y = AME)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper, alpha = 0.2)) +
+  labs(title = "Average Marginal effects of lr",
+       x = "Vcount", y = "Effects on linear prediction")+
+scale_x_continuous(breaks = seq(0,10,1)) +
+  scale_y_continuous(breaks = seq(0.5,2,0.5))
+
+```
+
+## POLYNOMIAL REGRESSION
+
+use COUNTRIES DATA
+
+```{r}
+c_data <- read_dta("Data Files/ps2030.countries_2002.dta")
+```
+
+Scatter plot with linear and quadratic fits
+
+```{r}
+ggplot(c_data, aes(x = docs, y = deathrat)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", formula = y ~ x) +  # Linear fit
+  geom_smooth(method = "lm", se = FALSE, color = "red", formula = y ~ poly(x, 2)) +  # Quadratic fit
+  labs(title = "Scatter Plot with Linear and Quadratic Fits",
+       x = "Doctors per 10,000 people",
+       y = "Death Rate") +
+  theme_minimal()
+```
+
+```{r}
+c_data$docsquared<-c_data$docs^2
+lm_d<-lm(deathrat ~ docs,data=c_data)
+summary(lm_d)
+
+lm_d2<-lm(deathrat ~ docs + docsquared,data=c_data)
+summary(lm_d2)
+
+#alternative way
+lm_d3<-lm(deathrat ~ docs + I(docs^2), data=c_data)
+summary(lm_d3)
+```
+
+calculate predicted outcome
+
+```{r}
+pdeath<-margins::prediction(lm_d3, at = list(docs = seq(0.1, 43, by = 1)))
+pdeath
+
+#plot
+ggplot(as.data.frame(pdeath), aes(x = docs, y = fitted)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), width = 0.2) +
+  labs(title = "Adjusted predictions",
+       x = "Doctors per 10,000 people", y = "Linear prediction")+
+scale_x_continuous(breaks = seq(0,40,10)) +
+  scale_y_continuous(breaks = seq(5,20,5))
+
+# plot with no confidence interval
+ggplot(as.data.frame(pdeath), aes(x = docs, y = fitted)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Adjusted predictions",
+       x = "Doctors per 10,000 people", y = "Linear prediction")+
+scale_x_continuous(breaks = seq(0,40,10)) +
+  scale_y_continuous(breaks = seq(5,20,5))
+
+# plot with no points
+ggplot(as.data.frame(pdeath), aes(x = docs, y = fitted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), alpha = 0.2) +
+  labs(title = "Adjusted predictions",
+       x = "Doctors per 10,000 people", y = "Linear prediction")+
+scale_x_continuous(breaks = seq(0,40,10)) +
+  scale_y_continuous(breaks = seq(5,20,5))
+```
+
+ADJUSTING FOR ANOTHER COVARIATE
+
+```{r}
+lm_d4<-lm(deathrat ~ docs + I(docs^2) + lngdp, data=c_data)
+summary(lm_d4)
+
+
+pdeath2 <- margins::prediction(lm_d4, at = list(docs = seq(0.1, 43, by = 1)))
+pdeath2
+
+ggplot(as.data.frame(pdeath2), aes(x = docs, y = fitted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), alpha = 0.2) +
+  labs(title = "Adjusted predictions",
+       x = "Doctors per 10,000 people", y = "Linear prediction")+
+scale_x_continuous(breaks = seq(0,40,10)) +
+  scale_y_continuous(breaks = seq(5,20,5))
+
+```
+
+## LOGARITHMIC REGRESSION
+
+```{r}
+ggplot(c_data, aes(x = gdp, y = life)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", formula = y ~ x) +  # Linear fit
+  labs(title = "Scatter Plot with Linear Fits",
+       x = "gdp per capita",
+       y = "Average life expectancy") +
+  theme_minimal()
+```
+
+```{r}
+c_data$lggdp <- log10(c_data$gdp)
+c_data$lglife <- log10(c_data$life)
+
+ggplot(c_data, aes(x = lggdp, y = lglife)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", formula = y ~ x) +  # Linear fit
+  labs(title = "Scatter Plot with Linear Fits",
+       x = "gdp per capita (log)",
+       y = "Average life expectancy") +
+  theme_minimal()
+
+lm_lg<-lm(lglife ~ lggdp, data=c_data)
+summary(lm_lg)
+```
+
+make some predictions:
+
+```{r}
+c_data$yhat2 <- predict(lm_lg)
+# Transform the predicted values back to the original scale
+c_data$yhat_antilog <- 10^c_data$yhat2
+
+# Check the correlation between 'life' and the transformed predicted values
+cor(c_data$life, c_data$yhat_antilog)
+```
+
+###PLOT THE LOGARITHMIC FUNCTION
+
+```{r}
+# Sort the data frame by 'gdp'
+c_data <- c_data[order(c_data$gdp), ]
+
+# Plot the connected line and scatter plot
+ggplot(c_data, aes(x = gdp, y = yhat_antilog)) +
+  geom_point(color = "blue")+
+  geom_line(color = "blue") +
+  geom_point(aes(y = life), color = "red") +
+  labs(x = "GDP PER CAPITA", y = "LIFE EXPECTANCY") +
+  theme_minimal()
+```
+
+### LOGARITHMIC REGRESSION WITH NATURAL LOGS
+
+```{r}
+c_data$lnlife<-log(c_data$life)
+lm_lnlife<-lm(lnlife~lngdp, data=c_data)
+summary(lm_lnlife)
+```
+
+SAME MODEL ESTIMATED IN "nls" ROUTINE FOR NON-LINEAR MODELS
+
+```{r}
+lm_lnlife2 <- nls(life ~ 0 + alpha * gdp^beta, data = c_data, start = list(alpha = 1, beta = 1))
+summary(lm_lnlife2)
+```
+
+## HYPERBOLIC MODELS
+
+```{r}
+# non-missing cases
+nonmiss_data <- c_data[!is.na(c_data$life) & !is.na(c_data$gdp), ]
+
+# Provide starting values
+start_values <- c(alpha = 70, beta = -0.5)
+
+# Fit the nonlinear model
+model_life <- nls(life ~ alpha + beta / gdp, data = nonmiss_data, start = start_values)
+
+# Print the model summary
+summary(model_life)
+```
+
+```{r}
+start_values2<-c(alpha = 0, beta = 1)
+model_fer <- nls(fertrate~ alpha + beta / gdp, data = nonmiss_data, start = start_values2)
+summary(model_fer)
+```

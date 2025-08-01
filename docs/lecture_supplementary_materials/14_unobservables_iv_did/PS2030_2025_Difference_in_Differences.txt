@@ -1,0 +1,95 @@
+---
+title: "DIFFERENCE-IN-DIFFERENCE MODELS"
+output: html_document
+date: "2023-12-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(dplyr)
+library(Hmisc)
+library(ggplot2)
+library(psych)
+library(plm)
+```
+
+## EXAMPLE: KENYA CIVIC EDUCATION DATA (FOLLOWING FINKEL&SMITH 2011, AJPS)
+
+USE KENYA 2 WAVE "WIDE" DATA
+
+```{r}
+ky_w<- read_dta("Data Files/Kenya.Did2Wave.wide.dta")
+```
+
+tabulations of treatment variables
+
+```{r}
+table(ky_w$newtreat_ww0)
+table(ky_w$newtreat_ww1)
+```
+
+tabulations of knowlege variables
+
+```{r}
+table(ky_w$know_w0)
+table(ky_w$know_w1)
+
+# Summarize knowledge variables
+describe(ky_w$know_w0)
+describe(ky_w$know_w1)
+```
+
+Create new variables for the differences:
+
+```{r}
+ky_w$knowdif <- ky_w$know_w1 - ky_w$know_w0
+ky_w$treatdif <- ky_w$newtreat_ww1 - ky_w$newtreat_ww0
+table(ky_w$treatdif)
+table(ky_w$knowdif)
+```
+
+THE BASIC FD MODEL
+
+```{r}
+# Regression of knowdif on treatdif
+fe_model_1 <- lm(knowdif ~ treatdif, data = ky_w)
+summary(fe_model_1)
+
+# Regression of knowdif on newtreat_ww1
+fe_model_2 <- lm(knowdif ~ newtreat_ww1, data = ky_w)
+summary(fe_model_2)
+```
+
+MARGINAL PREDICTIONS
+
+```{r}
+aggregate(cbind(know_w1, know_w0) ~ treatdif, data = ky_w, FUN = mean)
+```
+
+## ALTERNATIVE DiD ESTIMATION WITH LONG DATA
+
+USE KENYA 2 WAVE "LONG" DATA
+
+```{r}
+ky_l<- read_dta("Data Files/Kenya.Did2Wave.long.dta")
+```
+
+In R, to replicate the functionality of Stata's xtset and the subsequent regression analysis with panel data, you can use the plm package.
+
+```{r}
+# 'id' is the individual identifier, and 'j' is the time identifier
+# first rename column from _j to j since R cannot recognize variable name starting from underscore
+names(ky_l)[names(ky_l) == "_j"] <- "j" 
+ky_lp <- pdata.frame(ky_l, index = c("id", "j"))
+#REGRESSION OF KNOWLEDGE WITH TREATMENT GROUP, TIME, AND INTERACTION BETWEEN TREATMENT AND TIME
+know_model <- plm(know_w ~ treat*j, data = ky_lp, model = "pooling")
+summary(know_model)
+```
+
+OR -- 'FIXED EFFECT' MODEL WHICH IS STANDARD FOR MULTIWAVE (N\>2) PANEL ANALYSIS
+
+```{r}
+know_model_fe <- plm(know_w ~ newtreat_ww + j, data = ky_lp, model = "within")
+summary(know_model_fe)
+```

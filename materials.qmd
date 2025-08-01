@@ -1,0 +1,188 @@
+---
+title: "Materials"
+---
+
+```{=html}
+<br>
+<br>
+<table class="custom-materials-table">
+  <thead>
+    <tr>
+      <th>Unit</th>
+      <th>Topic</th>
+      <th>Lecture</th>
+      <th>Supplementary Materials</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id="bivariate-regression" class="unit-start">
+      <td rowspan="5">Unit 1 – Fundamentals of Linear Regression</td>
+      <td>Bivariate Regression</td>
+      <td><a href="/lecture_slides/01_bivariate_regression/PS2030_2025_Course_Introduction.pdf" target="_blank">Lecture&nbsp;1</a>
+      <a href="/lecture_slides/01_bivariate_regression/PS2030_2025_Bivariate_Regression.pdf" target="_blank">Lecture&nbsp;2</a></td>
+      <td>
+      <span style="display: inline-block; margin-left: 1.75em;color: #888; font-size: 1.1em">&ndash;</span>
+      </td>
+      <td></td>
+    </tr>
+    <tr id="ols-assumptions" class="lecture-row">
+      <td>Assumptions of Ordinary Least Squares</td>
+      <td><a href="/lecture_slides/02_ols_assumptions/PS2030_2025_OLS_Assumptions_and_Hypothesis_Testing.pdf" target="_blank">Lecture 3</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/02_ols_assumptions/PS2030_2025_Bivariate_and_Multiple_Regression.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/02_ols_assumptions/PS2030_2025_Bivariate_and_Multiple_Regression.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/02_ols_assumptions/02_ols_assumptions.zip" target="_blank">Data</a><br>
+      </td>
+    <td></td>
+    </tr>
+    <tr id="hypothesis-testing" class="lecture-row">
+      <td>Hypothesis Testing</td>
+      <td><a href="/lecture_slides/03_hypothesis_testing/PS2030_2025_OLS_Assumptions_and_Hypothesis_Testing.pdf" target="_blank">Lecture 3</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/03_hypothesis_testing/PS2030_2025_Bivariate_and_Multiple_Regression.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/03_hypothesis_testing/PS2030_2025_Bivariate_and_Multiple_Regression.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/03_hypothesis_testing/03_hypothesis_testing.zip" target="_blank">Data</a><br>
+      </td>
+      <td></td>
+    </tr>
+    <tr id="multiple-regression" class="lecture-row">
+      <td>Multiple Regression</td>
+      <td><a href="/lecture_slides/04_multiple_regression/PS2030_2025_Multiple_Regression.pdf" target="_blank">Lecture 4</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/04_multiple_regression/PS2030_2025_Bivariate_and_Multiple_Regression.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/04_multiple_regression/PS2030_2025_Bivariate_and_Multiple_Regression.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/04_multiple_regression/04_multiple_regression.zip" target="_blank">Data</a><br>
+      </td>
+      <td></td>
+    </tr>
+        <tr id="dummy-variable-regression" class="lecture-row">
+      <td>Dummy Variable Regression</td>
+      <td><a href="/lecture_slides/05_dummy_variable_regression/PS2030_2025_Dummy_Variables.pdf" target="_blank">Lecture 5</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/05_dummy_variable_regression/PS2030_2025_Dummy_Variables.do" target="_blank">Stata Script</a><br>
+         <a href="/lecture_supplementary_materials/05_dummy_variable_regression/PS2030_2025_Dummy_Variables.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/05_dummy_variable_regression/ps2030.bank-salaries.dta" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="functional-form" class="unit-start">
+      <td rowspan="3">Unit 2 – Regression Models: Extensions and Problems</td>
+      <td>Functional Form: Non-Linear and Non-Additive Models</td>
+      <td><a href="/lecture_slides/06_functional_form/PS2030_2025_Non_Additive_and_Non_Linear_Models.pdf" target="_blank">Lecture&nbsp;6</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/06_functional_form/PS2030_2025_Non_Additive_and_Non_Linear_Models.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/06_functional_form/PS2030_2025_Non_Additive_and_Non_Linear_Models.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/06_functional_form/06_functional_form.zip" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="violations-of-assumptions" class="lecture-row">
+      <td>Violations of Assumptions: Multicollinearity, Heteroskedasticity, Autocorrelation</td>
+      <td><a href="/lecture_slides/07_violations_of_assumptions/PS2030_2025_Multicollinearity_Heteroskedasticity_Autocorrelation.pdf" target="_blank">Lecture&nbsp;7</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/07_violations_of_assumptions/PS2030_2025_Heteroskedasticity_and_Autocorrelation.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/07_violations_of_assumptions/PS2030_2025_Heteroskedasticity_and_Autocorrelation.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/07_violations_of_assumptions/07_violations_of_assumptions.zip" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="endogenous-regressors" class="lecture-row">
+      <td>Endogenous Regressors</td>
+      <td><a href="/lecture_slides/08_endogenous_regressors/PS2030_2025_Endogenous_Regressors.pdf" target="_blank">Lecture&nbsp;8</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/08_endogenous_regressors/PS2030_2025_Endogeneity_and_Instrumental_Variables.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/08_endogenous_regressors/PS2030_2025_Endogeneity_and_Instrumental_Variables.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/08_endogenous_regressors/protest.homework1.dta" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="logit-probit-intro" class="unit-start">
+      <td rowspan="3">Unit 3 – Models for Non-Continuous Dependent Variables</td>
+      <td>Introduction to Logit and Probit Models</td>
+      <td><a href="/lecture_slides/09_logit_probit_intro/PS2030_2025_Logit_and_Probit_Models.pdf" target="_blank">Lecture&nbsp;9</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/09_logit_probit_intro/PS2030_2025_LPM_Logit_Probit.do" target="_blank">Stata Script</a><br>
+         <a href="/lecture_supplementary_materials/09_logit_probit_intro/PS2030_2025_LPM_Logit_Probit.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/09_logit_probit_intro/ps2030.safrica.dta" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="logit-probit-interpretation" class="lecture-row">
+      <td>Estimation and Interpretation of Logit and Probit Models</td>
+      <td><a href="/lecture_slides/10_logit_probit_interpretation/PS2030_2025_Maximum_Likelihood.pdf" target="_blank">Lecture&nbsp;10</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/10_logit_probit_interpretation/PS2030_2025_Maximum_Likelihood_Probit.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/10_logit_probit_interpretation/PS2030_2025_Maximum_Likelihood_Probit.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/10_logit_probit_interpretation/10_logit_probit_interpretation.zip" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="ordinal-nominal" class="lecture-row">
+      <td>Models for Ordinal and Nominal Outcomes</td>
+      <td><a href="/lecture_slides/11_ordinal_nominal/PS2030_2025_Ordinal_Logit_and_Probit.pdf" target="_blank">Lecture&nbsp;11</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/11_ordinal_nominal/PS2030_2025_Ordered_Logit_and_Probit.do" target="_blank">Stata Script</a><br>
+         <a href="/lecture_supplementary_materials/11_ordinal_nominal/PS2030_2025_Ordered_Logit_and_Probit.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/11_ordinal_nominal/ps2030.safrica.dta" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="causal-inference-intro" class="unit-start">
+      <td rowspan="4">Unit 4 – Models for Causal Inference</td>
+      <td>Counterfactuals, Potential Outcomes, and Causal Inference</td>
+      <td><a href="/lecture_slides/12_causal_inference_intro/PS2030_2025_Counterfactuals_and_Selection_on_Observables.pdf" target="_blank">Lecture&nbsp;12</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/12_causal_inference_intro/PS2030_2025_Regression_and_Matching.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/12_causal_inference_intro/PS2030_2025_Regression_and_Matching.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/12_causal_inference_intro/ps2030.safrica.dta" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="observables-matching" class="lecture-row">
+      <td>Selection on Observables: Regression and Matching</td>
+      <td><a href="/lecture_slides/13_observables_matching/PS2030_2025_Counterfactuals_and_Selection_on_Observables.pdf" target="_blank">Lecture&nbsp;12</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/13_observables_matching/PS2030_2025_Regression_and_Matching.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/13_observables_matching/PS2030_2025_Regression_and_Matching.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/13_observables_matching/ps2030.safrica.dta" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="unobservables-iv-did" class="lecture-row">
+      <td>Selection on Unobservables: Instrumental Variables and Difference-in-Differences</td>
+      <td><a href="/lecture_slides/14_unobservables_iv_did/PS2030_2025_Selection_on_Unobservables.pdf" target="_blank">Lecture&nbsp;13</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/14_unobservables_iv_did/PS2030_2025_Difference_in_Differences.do" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/14_unobservables_iv_did/PS2030_2025_Difference_in_Differences.txt" target="_blank">R Script</a><br>
+        <a href="/lecture_supplementary_materials/14_unobservables_iv_did/14_unobservables_iv_did.zip" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+    <tr id="fixed-effects-panel" class="lecture-row">
+      <td>Fixed Effects and Panel Models</td>
+      <td><a href="/lecture_slides/15_fixed_effects_panel/PS2030_2025_Selection_on_Unobservables.pdf" target="_blank">Lecture&nbsp;13</a></td>
+      <td>
+        <a href="/lecture_supplementary_materials/15_fixed_effects_panel/15_fixed_effects_panel.zip" target="_blank">Stata Script</a><br>
+        <a href="/lecture_supplementary_materials/15_fixed_effects_panel/15_fixed_effects_panel_data.zip" target="_blank">Data</a></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+<script>
+  window.addEventListener("DOMContentLoaded", function () {
+    const hash = window.location.hash;
+
+    if (hash) {
+      setTimeout(() => {
+        const target = document.querySelector(hash);
+
+        // Accept either lecture-row or unit-start targets
+        if (target && (target.classList.contains("lecture-row") || target.classList.contains("unit-start"))) {
+          target.classList.add("highlight");
+
+          if (target.classList.contains("unit-start")) {
+            target.classList.add("unit-highlight");
+          }
+
+          setTimeout(() => {
+            target.classList.remove("highlight");
+            target.classList.remove("unit-highlight");
+          }, 3000);
+
+          history.replaceState(null, null, window.location.pathname);
+        }
+      }, 100);
+    }
+  });
+</script>
+```

@@ -1,0 +1,39 @@
+project:
+  type: website
+  output-dir: docs
+  
+exclude:
+  - "lecture_slides/**"
+  - "lecture_supplementary_materials/**"
+
+website:
+  title: "Regression Analysis"
+  sidebar:
+    background: primary
+    logo: "images/ps2030_logo-modified.png"
+    pinned: true
+    align: center
+    style: docked
+    contents:
+      - href: syllabus.qmd
+        text: Syllabus
+      - href: materials.qmd
+        text: Materials
+      - href: https://finkel-s.github.io/teaching.html
+        text: "Other Courses"
+
+format:
+  html:
+    anchor-sections: false
+    page-layout: full
+    theme:
+      light: flatly
+      dark: darkly
+    theme-toggle: true
+    tools:
+      - toggle
+    css: styles.css
+    toc: true
+    
+editor: visual
+

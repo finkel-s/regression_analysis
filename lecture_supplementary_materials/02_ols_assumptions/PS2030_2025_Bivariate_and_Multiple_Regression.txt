@@ -1,0 +1,281 @@
+---
+title: "Bivariate&Multiple Regression"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(margins)
+library(psych)
+library(QuantPsyc)
+library(haven)
+library(marginaleffects)
+```
+
+## BIVARIATE REGRESSION
+
+load data first (we directly load .dta data here using haven package)
+
+remember to change the path of the file to the path in your computer.
+
+```{r}
+sa_data <- read_dta("Data Files/ps2030.bank-salaries.dta")
+```
+
+### Generate Scatterplot of Salary and Education Level
+
+```{r, fig.show="hold", out.width="49%"}
+
+p=ggplot(sa_data, aes(x = edlevel, y = salnow)) +
+  geom_jitter(width = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatter plot of Salary and Education Level",
+       x = "Education Level",
+       y = "Salary")
+p+scale_x_continuous(breaks = seq(5,20,5))+scale_y_continuous(breaks = seq(0,60000,20000))
+```
+
+### Bivariate Regression
+
+```{r}
+lm_bivariate <- lm(salnow ~ edlevel, data = sa_data)
+summary(lm_bivariate)
+```
+
+### Generate Predicted Values of Y (YHAT) and Residuals (e)
+
+```{r}
+sa_data$predsal <- predict(lm_bivariate)
+sa_data$residsal <- residuals(lm_bivariate)
+# manual version:
+sa_data$manpred<--7332.471+1563.963*sa_data$edlevel
+sa_data$manresid=sa_data$salnow-sa_data$manpred
+# list some cases
+head(sa_data[, c("salnow", "predsal", "manpred", "residsal", "manresid")], 20)
+```
+
+### Generate predicted values for specific X values, using margins package or you can also use marginal effect package
+
+```{r}
+margins::prediction(lm_bivariate, at =
+list(edlevel = 12))
+
+marg_8_12_20_21<-margins::prediction(lm_bivariate, at = list(edlevel = c(8, 12, 20, 21)))
+
+marg_8_12_20_21
+
+ggplot() +
+  geom_point(data = marg_8_12_20_21, aes(x = edlevel, y = fitted)) +
+  geom_line(data = marg_8_12_20_21, aes(x = edlevel, y = fitted)) +
+  geom_ribbon(data = marg_8_12_20_21, aes(x = edlevel, ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), alpha = 0.2, fill = "blue") +
+  labs(title = "Predicted Values and Confidence Intervals for Different Education Levels",
+       x = "Education level",
+       y = "Linear prediction") +
+  scale_x_continuous(breaks = c(8,12,20,21)) +
+  scale_y_continuous(breaks = seq(5000,25000,5000))
+
+
+```
+
+Alternatively, we can also use marginaleffects package to get the same results.
+
+```{r}
+avg_predictions(lm_bivariate, variables = list(edlevel = 12))
+
+avg_predictions(lm_bivariate, variables = list(edlevel = c(8, 12, 20, 21)))
+```
+
+### Descriptive statistics on Y, Yhat, and Residuals
+
+```{r}
+summary(sa_data[c("salnow", "predsal", "residsal")])
+```
+
+### Do the errors of prediction correlate with any other variable?
+
+```{r}
+tapply(sa_data$residsal, sa_data$sex, mean, na.rm = TRUE)
+```
+
+## MULTIPLE REGRESSION
+
+```{r}
+saf_data <- read_dta("Data Files/ps2030.safrica.dta")
+# Summary statistics of 'know', 'times', and 'educ1'
+summary_stats <- describe(saf_data[c("know", "times", "educ1")], trim=0)
+print(summary_stats)
+
+# Correlation matrix between 'know', 'times', and 'educ1'
+cor_matrix <- cor(saf_data[c("know", "times", "educ1")])
+print(cor_matrix)
+```
+
+### BIVARIATE
+
+```{r}
+lm_bivariate_know_times <- lm(know ~ times, data = saf_data)
+summary(lm_bivariate_know_times)
+
+lm_bivariate_know_educ1 <- lm(know ~ educ1, data = saf_data)
+summary(lm_bivariate_know_educ1)
+```
+
+### Manual Multivariate Regression
+
+```{r}
+# coefficient for educ1
+# Regression of know on times
+model_know_times <- lm(know ~ times, data = saf_data)
+summary(model_know_times)
+yresidtimes <- residuals(model_know_times)
+
+# Regression of educ1 on times
+model_educ1_times <- lm(educ1 ~ times, data = saf_data)
+summary(model_educ1_times)
+xresidtimes <- residuals(model_educ1_times)
+# Regression of yresidtimes on xresidtimes
+model_yresid_xresid <- lm(yresidtimes ~ xresidtimes)
+summary(model_yresid_xresid)
+```
+
+### BETA COEFFICIENTS AND CALCULATIONS
+
+```{r}
+lm_multivariate <- lm(know ~ times + educ1, data = saf_data)
+summary(lm_multivariate)
+
+# Extracting standardized coefficients (beta)
+coef_lmbeta <- lm.beta(lm_multivariate)
+coef_lmbeta
+```
+
+### F\* Tests and Model Building: HYPOTHETICAL 'SOCIAL BACKGROUND' VERSUS 'MOTIVATIONAL' MODEL
+
+```{r}
+# THE 'FULL' MODEL
+lm_full_model <- lm(know ~ age1 + educ1 + church + interest + media2 + efficacy, data = saf_data)
+summary(lm_full_model)
+# REDUCED MODEL 1:  MOTIVATIONAL VARIABLES ONLY
+lm_reduced_model1 <- lm(know ~ interest + media2 + efficacy, data = saf_data)
+summary(lm_reduced_model1)
+# REDUCED MODEL 2:  SOCIAL BACKGROUND VARIABLES ONLY
+lm_reduced_model2 <- lm(know ~ age1 + educ1 + church, data = saf_data)
+summary(lm_reduced_model2)
+# F* Test for Social Background Model
+anova(lm_reduced_model1, lm_full_model)
+
+# F* Test for Motivational Model
+anova(lm_reduced_model2, lm_full_model)
+
+```
+
+### BASIC RESIDUAL PLOTS
+
+```{r}
+# generates a new variable "residknow" that represents the residual from the multiple regression function
+saf_data$residuals_know <- residuals(lm_multivariate)
+
+# generates a new variable "predknow" that represents the predicted value of Y from the multiple regression function
+saf_data$predicted_know <- predict(lm_multivariate)
+
+# plot the Residuals against Predicted Values of Y
+ggplot(saf_data, aes(x = predicted_know, y = residuals_know)) +
+   geom_jitter(width = 0.5)  +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Scatter Plot of Residuals vs Predicted Values with Fitted Line",
+       x = "Predicted Values",
+       y = "Residuals") + 
+  scale_x_continuous(breaks = seq(2,8,2)) +
+  scale_y_continuous(breaks = seq(-5,5,5)) +
+  theme_minimal()
+
+# Residuals against one of the predictor X variables
+ggplot(saf_data, aes(x = times, y = residuals_know)) +
+   geom_jitter(width = 0.3)  +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Scatter Plot of Residuals vs Times with Fitted Line",
+       x = "Times",
+       y = "Residuals") + 
+  scale_x_continuous(breaks = seq(0,4,1)) +
+  scale_y_continuous(breaks = seq(-5,5,5)) +
+  theme_minimal()
+
+```
+
+### Histogram and Normal Probability Plot of Residuals
+
+```{r}
+
+ggplot(saf_data, aes(x = residuals_know)) +
+  geom_histogram(aes(y = ..density..), fill = "blue", color = "black", alpha = 0.7, breaks = seq(-6.1596866, 6, by = .41887331)) +
+  labs(title = "Density Histogram of Residuals",
+       x = "Residuals",
+       y = "Density") +
+    scale_x_continuous(breaks = seq(-5,5,5)) +
+  scale_y_continuous(breaks = seq(0,0.3,0.1)) +
+  theme_minimal()
+qqnorm(saf_data$residuals_know)
+qqline(saf_data$residuals_know)
+```
+
+### OUTLIERS AND LEVERAGE TESTS: LET'S USE THE COUNTRIES DATA HERE
+
+```{r}
+countries_data <- read_dta("Data Files/ps2030.countries_2002.dta")
+ggplot(countries_data, aes(x = urban, y = life)) +
+  geom_jitter(width = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatter plot of life and urban",
+       x = "Percent urban",
+       y = "life")+
+  scale_x_continuous(breaks = seq(0,100,20))+
+  scale_y_continuous(breaks = seq(40,80,10))
+
+lm_life <- lm(life ~ urban, data = countries_data)
+summary(lm_life)
+countries_data$liferesid <- residuals(lm_life)
+countries_data$lifepred <- predict(lm_life)
+
+# look at normality
+hist(countries_data$liferesid, breaks = seq(-29.083878, 20, by = 2.2321515), prob=TRUE, xlab = "Residuals" )
+qqnorm(countries_data$liferesid)
+qqline(countries_data$liferesid)
+
+
+```
+
+```{r}
+# Standardized Residuals
+countries_data$standresid <- countries_data$liferesid / sd(countries_data$liferesid)
+ggplot(countries_data, aes(x = urban, y = standresid)) +
+  geom_jitter(width = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatter plot of life and urban",
+       x = "Percent urban",
+       y = "standresid")+
+  scale_x_continuous(breaks = seq(0,100,20))+
+  scale_y_continuous(breaks = seq(-4,2,2))
+
+# GIVES ALL THE LARGEST RESIDUALS FOR EXAMINATION
+subset_data <-countries_data[abs(countries_data$standresid) > 2, c("country", "life", "lifepred", "liferesid", "standresid")]
+print(subset_data)
+```
+
+## Note for Homework
+
+To run a regression in R for only those cases that are not missing on any of the specified variables (var1 to var4), you can use the complete.cases() function to filter your dataset.
+
+```{r, eval=F, echo=T}
+# Assuming you have a dataframe named 'your_data' with variables 'depvar', 'var1', 'var2', 'var3', and 'var4'
+
+# Create a subset of data containing only complete cases on var1 to var4
+subset_data <- your_data[complete.cases(your_data$var1, your_data$var2, your_data$var3, your_data$var4), ]
+
+# Run a regression of depvar on var1 and var2 using the subsetted data
+lm_model <- lm(depvar ~ var1 + var2, data = subset_data)
+
+# Print the regression summary
+summary(lm_model)
+```

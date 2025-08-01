@@ -1,0 +1,268 @@
+---
+title: "Maximum Likelihood Example and Summary Measures of Model Fit"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(dplyr)
+library(Hmisc)
+library(ggplot2)
+library(psych)
+library(margins)
+library(marginaleffects)
+library(lmtest)
+library(sandwich)
+library(modelsummary)
+library(pscl)
+library(caret)
+```
+
+load data
+
+```{r}
+ maxlike<- read_dta("Data Files/maxlike.probit.xy.dta")
+```
+
+```{r}
+# DEFAULT Log Likelihood when all Bs are 0 except for the intercept
+pro_basic<- glm(y ~ 1, data = maxlike, family = binomial(link = "probit"))
+summary(pro_basic)
+```
+
+UNCONDITIONAL PROBABILITY OF BEING 1 FOR ALL CASES -- I.E. 5 AT "1", 4 AT '0" = .55 P(Y=1)
+
+```{r}
+5/9
+```
+
+Z-SCORE ASSOCIATED WITH P(Y=1) OF .55
+
+```{r}
+qnorm(5/9)
+```
+
+```{r}
+maxlike$pred0 <- 0.1397
+
+# Calculate predicted probability
+maxlike$predprb0 <- pnorm(maxlike$pred0)
+
+```
+
+THIS RETURNS .55 AS THE PREDICTED PROB FOR ALL CASES ASSOCIATED WITH THE INTERCEPT ONLY MODEL
+
+```{r}
+# Initialize lnlikep0 with NA values
+maxlike$lnlikep0 <- NA
+
+# Calculate log-likelihood for y == 1
+maxlike$lnlikep0[maxlike$y == 1] <- log(maxlike$predprb0[maxlike$y == 1])
+
+# Calculate log-likelihood for y == 0
+maxlike$lnlikep0[maxlike$y == 0] <- log(1 - maxlike$predprb0[maxlike$y == 0])
+
+sum(maxlike$lnlikep0, na.rm = TRUE)
+```
+
+Now try other values of B for X as well as intercept
+
+```{r}
+maxlike$pred1 <- -0.3 + 1 * maxlike$x
+# Calculate predicted probability using the normal distribution function
+maxlike$predprb1 <- pnorm(maxlike$pred1)
+
+# Initialize lnlikep1 with NA values
+maxlike$lnlikep1 <- NA
+
+# Calculate log-likelihood for y == 1
+maxlike$lnlikep1[maxlike$y == 1] <- log(maxlike$predprb1[maxlike$y == 1])
+
+# Calculate log-likelihood for y == 0
+maxlike$lnlikep1[maxlike$y == 0] <- log(1 - maxlike$predprb1[maxlike$y == 0])
+
+aggregate(. ~ 1, data = maxlike[, c("lnlikep0", "lnlikep1")], sum, na.rm = TRUE)
+```
+
+```{r}
+maxlike$pred2 <- -0.3 + 2 * maxlike$x
+# Calculate predicted probability using the normal distribution function
+maxlike$predprb2 <- pnorm(maxlike$pred2)
+
+# Initialize lnlikep2 with NA values
+maxlike$lnlikep2 <- NA
+
+# Calculate log-likelihood for y == 1
+maxlike$lnlikep2[maxlike$y == 1] <- log(maxlike$predprb2[maxlike$y == 1])
+
+# Calculate log-likelihood for y == 0
+maxlike$lnlikep2[maxlike$y == 0] <- log(1 - maxlike$predprb2[maxlike$y == 0])
+
+aggregate(. ~ 1, data = maxlike[, c("lnlikep0", "lnlikep1", "lnlikep2")], sum, na.rm = TRUE)
+```
+
+```{r}
+maxlike$pred3 <- -0.3 + 3 * maxlike$x
+# Calculate predicted probability using the normal distribution function
+maxlike$predprb3 <- pnorm(maxlike$pred3)
+
+# Initialize lnlikep3 with NA values
+maxlike$lnlikep3 <- NA
+
+# Calculate log-likelihood for y == 1
+maxlike$lnlikep3[maxlike$y == 1] <- log(maxlike$predprb3[maxlike$y == 1])
+
+# Calculate log-likelihood for y == 0
+maxlike$lnlikep3[maxlike$y == 0] <- log(1 - maxlike$predprb3[maxlike$y == 0])
+
+aggregate(. ~ 1, data = maxlike[, c("lnlikep0", "lnlikep1", "lnlikep2", "lnlikep3")], sum, na.rm = TRUE)
+```
+
+```{r}
+maxlike$pred4 <- -0.3 + 3.5 * maxlike$x
+# Calculate predicted probability using the normal distribution function
+maxlike$predprb4 <- pnorm(maxlike$pred4)
+
+# Initialize lnlikep4 with NA values
+maxlike$lnlikep4 <- NA
+
+# Calculate log-likelihood for y == 1
+maxlike$lnlikep4[maxlike$y == 1] <- log(maxlike$predprb4[maxlike$y == 1])
+
+# Calculate log-likelihood for y == 0
+maxlike$lnlikep4[maxlike$y == 0] <- log(1 - maxlike$predprb4[maxlike$y == 0])
+
+aggregate(. ~ 1, data = maxlike[, c("lnlikep0", "lnlikep1", "lnlikep2", "lnlikep3","lnlikep4" )], sum, na.rm = TRUE)
+```
+
+```{r}
+maxlike$pred5 <- -0.3 + 4 * maxlike$x
+# Calculate predicted probability using the normal distribution function
+maxlike$predprb5 <- pnorm(maxlike$pred5)
+
+# Initialize lnlikep5 with NA values
+maxlike$lnlikep5 <- NA
+
+# Calculate log-likelihood for y == 1
+maxlike$lnlikep5[maxlike$y == 1] <- log(maxlike$predprb5[maxlike$y == 1])
+
+# Calculate log-likelihood for y == 0
+maxlike$lnlikep5[maxlike$y == 0] <- log(1 - maxlike$predprb5[maxlike$y == 0])
+
+aggregate(. ~ 1, data = maxlike[, c("lnlikep0", "lnlikep1", "lnlikep2", "lnlikep3","lnlikep4","lnlikep5")], sum, na.rm = TRUE)
+```
+
+```{r}
+maxlike$pred6 <- -0.3 + 5 * maxlike$x
+# Calculate predicted probability using the normal distribution function
+maxlike$predprb6 <- pnorm(maxlike$pred6)
+
+# Initialize lnlikep6 with NA values
+maxlike$lnlikep6 <- NA
+
+# Calculate log-likelihood for y == 1
+maxlike$lnlikep6[maxlike$y == 1] <- log(maxlike$predprb6[maxlike$y == 1])
+
+# Calculate log-likelihood for y == 0
+maxlike$lnlikep6[maxlike$y == 0] <- log(1 - maxlike$predprb6[maxlike$y == 0])
+
+aggregate(. ~ 1, data = maxlike[, c("lnlikep0", "lnlikep1", "lnlikep2", "lnlikep3","lnlikep4","lnlikep5", "lnlikep6")], sum, na.rm = TRUE)
+```
+
+Now get real estimates
+
+```{r}
+pro_x<- glm(y ~ x, family = binomial(link = "probit"), data = maxlike)
+summary(pro_x)
+modelsummary(pro_x)
+# pseudo-r2
+pR2(pro_x)
+```
+
+SD of X
+
+```{r}
+describe(maxlike$x)
+
+```
+
+R doesn't have a direct equivalent single function for `lstat`, but you can calculate these statistics manually using your model predictions and the actual outcomes.
+
+```{r}
+maxlike$predproby <- predict(pro_x, type = "response")
+maxlike$predicted_class <- ifelse(maxlike$predproby >= 0.5, 1,0)
+
+#use package caret
+# Confusion Matrix
+conf_matrix <- confusionMatrix(factor(maxlike$predicted_class, levels = c(1, 0)), factor(maxlike$y, levels = c(1, 0)))
+print(conf_matrix)
+
+# Sensitivity, Specificity, PPV, NPV, etc.
+sensitivity <- conf_matrix$byClass["Sensitivity"]
+specificity <- conf_matrix$byClass["Specificity"]
+ppv <- conf_matrix$byClass["Pos Pred Value"]
+npv <- conf_matrix$byClass["Neg Pred Value"]
+
+
+# Print the statistics
+print(sensitivity)
+print(specificity)
+print(ppv)
+print(npv)
+
+```
+
+Calculate Tjur's Coefficient of Discrimination
+
+Tjur's D is calculated as the difference between the mean predicted probabilities of the two outcome groups:
+
+```{r}
+t.test(predproby ~ y, data = maxlike)
+```
+
+##EXAMPLE OF COMPARING TWO MODELS WITH FITSTAT -- USING SOUTH AFRICA DATA
+
+### COMPARING ALTERNATIVE MODELS USING FITSTAT
+
+FIRST WE NEED TO MAKE SURE THAT WE ONLY USE VALID CASES FOR *ALL* MODELS
+
+```{r}
+saf_data<- read_dta("Data Files/ps2030.safrica.dta")
+```
+
+```{r}
+# Specify the columns you want to check for missing values
+columns_to_check <- c("educ1", "groups", "male", "black", "age1", "ecocur", "ecofut", "ideo", "partyid", "dembest", "demsat")
+
+# Create a logical vector indicating complete cases
+saf_data$nomiss <- complete.cases(saf_data[, columns_to_check])
+
+print(table(saf_data$nomiss))
+```
+
+```{r}
+saf_data$locdich <- as.numeric(saf_data$locpart > 0)  # Converts the condition to a binary numeric variable
+
+# Fit the reduced model
+reduced_model <- glm(locdich ~ educ1 + groups + age1 + male + black,
+                     family = binomial(link = "probit"),
+                     data = subset(saf_data, nomiss == 1))
+summary(reduced_model)
+```
+
+```{r}
+# Fit the full model
+full_model <- glm(locdich ~ educ1 + groups + age1 + male + black + ecocur + ecofut + ideo + partyid + dembest + demsat,
+                  family = binomial(link = "probit"),
+                  data = subset(saf_data, nomiss == 1))
+summary(full_model)
+```
+
+compare two models
+
+```{r}
+models<-list("Reduced Model"=reduced_model, "Full Model"=full_model)
+modelsummary(models)
+anova(reduced_model, full_model, test = "Chisq")
+```

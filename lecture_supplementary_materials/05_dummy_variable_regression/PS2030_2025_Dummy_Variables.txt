@@ -1,0 +1,352 @@
+---
+title: "Dummy variables"
+output: html_document
+date: "2023-11-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(margins)
+library(marginaleffects)
+library(dplyr)
+library(car)
+library(oaxaca)
+library(haven)
+library(multcomp)
+```
+
+load data
+
+```{r}
+sa_data <- read_dta("Data Files/ps2030.bank-salaries.dta")
+```
+
+## ADDITIVE ("INTERCEPT") DUMMY VARIABLE MODELS
+
+```{r}
+# Add a dummy variable for male (1 for male, 0 for female)
+sa_data$male <- 1 - sa_data$sex
+# Regression model with edlevel and male
+lm_sal <- lm(salnow ~ edlevel + factor(male), data = sa_data)
+# Print the regression summary
+summary(lm_sal)
+```
+
+USING DUMMY VARIABLE REGRESSION TO TEST GROUP DIFFERENCES
+
+```{r}
+lm_model_dummy <- lm(salnow ~ male, data = sa_data)
+
+# Print the regression summary for dummy variable regression
+summary(lm_model_dummy)
+```
+
+NOTE THAT WE HAVE A 6163.95 DIFFERENCE IN AVERAGE SALARY
+
+HOW MUCH IS "EXPLAINED" BY EDUCATIONAL DIFFERENCES?
+
+```{r}
+# Calculate average educational differences by sex
+avg_ed_diff <- tapply(sa_data$edlevel, sa_data$male, mean)
+avg_ed_diff
+
+# Display the mean difference in education
+print(avg_ed_diff[2] - avg_ed_diff[1])
+
+# Calculate overall salary difference between men and women accounted for by educational differences
+#overall_salary_diff_accounted_for <- (avg_ed_diff[2] - avg_ed_diff[1]) * coef(lm_model)['edlevel']
+
+# Display the overall salary difference accounted for by educational differences
+#print(overall_salary_diff_accounted_for)
+
+```
+
+SO THERE IS A 2.06 YEAR MEAN DIFFERENCE IN EDUCATION FOR MEN AND WOMEN
+
+```{r}
+# Calculate overall salary difference between men and women accounted for by educational differences
+overall_salary_diff_accounted_for <- (avg_ed_diff[2] - avg_ed_diff[1]) * coef(lm_sal)['edlevel']
+print(overall_salary_diff_accounted_for)
+```
+
+A 2794.56 OVERALL SALARY DIFFERENCE BETWEEN MEN AND WOMEN THAT IS "ACCOUNTED FOR" BY EDUCATIONAL DIFFERENCES
+
+WITH 3369.385 OF THE ORIGINAL 6163.95 DIFFERENCE STILL "UNEXPLAINED"
+
+### Using margins to calculate adjusted means and slopes
+
+PREDICTED SALARY FOR MALES WITH 12 YEARS OF EDUCATION
+
+```{r}
+margins::prediction(lm_sal, at =
+list(edlevel = 12, male=1))
+#alternative way to do this
+avg_predictions(lm_sal, variables = list(edlevel = 12, male=1))
+```
+
+```{r}
+
+# Calculate the estimated marginal means for the 'male' variable
+margins::prediction(lm_sal, at =
+list(male = c(0,1)))
+
+```
+
+THE SALARY MEANS FOR MEN AND WOMEN AT EVERY LEVEL OF EDUCATION
+
+```{r}
+margin_mw<-margins::prediction(lm_sal, at =
+list(edlevel= seq(8,21,1), male = c(0,1)))
+margin_mw
+
+# PLOTS THESE EFFECTS WITH CONFIDENCE INTERVALS SHADED
+ggplot(margin_mw, aes(x = edlevel, y = fitted, color = factor(male), fill = factor(male))) +
+  geom_line() +
+  geom_ribbon(aes(ymin = fitted-2*se.fitted, ymax = fitted+2*se.fitted, fill = factor(male)), alpha = 0.2) +
+  labs(title = "Predicted Values with Confidence Intervals by Male and Education Level",
+       x = "Education Level", y = "Predicted Value") +
+  scale_color_manual(values = c("blue", "red")) +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_x_continuous(breaks = seq(8,21,1)) +
+  scale_y_continuous(breaks = seq(5000,25000,5000))+
+  theme_minimal()
+```
+
+TESTING DIFFERENCES OF CATEGORIES OF MALE, HERE MALE=1 VERSUS FEMALE=0, IT IS ANOTHER WAY TO TEST THE SIGNIFICANCE OF THE REGRESSION COEFFICIENT FOR 'MALE' IN THIS CASE
+
+```{r}
+marginaleffects::avg_comparisons(lm_sal, variables=list(male="pairwise"))
+```
+
+## DUMMY VARIABLE EXAMPLE WITH MORE THAN 2 CATEGORIES
+
+```{r}
+# Recode 'jobcat' variable in R
+sa_data <- sa_data %>%
+  mutate(jobcatrec = case_when(
+    jobcat == 1 ~ 1,
+    jobcat %in% c(2, 4, 6) ~ 2,
+    jobcat %in% c(3, 5, 7) ~ 3,
+    TRUE ~ NA_real_  # Handle other cases or set to NA if needed
+  ))
+
+# Create dummy variables for 'jobcatrec'
+sa_data <- within(sa_data, {
+  jobcatrec1 <- ifelse(jobcatrec == 1, 1, 0)
+  jobcatrec2 <- ifelse(jobcatrec == 2, 1, 0)
+  jobcatrec3 <- ifelse(jobcatrec == 3, 1, 0)
+})
+
+# Fit linear regression model in R
+lm_sal_job <- lm(salnow ~ edlevel + jobcatrec2 + jobcatrec3, data = sa_data)
+summary(lm_sal_job)
+```
+
+Extract coefficients and perform hypothesis test
+
+```{r}
+coef(lm_sal_job)
+mmat<-rbind(c(0,0,-1,1)) 
+mtest<-glht(lm_sal_job,linfct = mmat)
+summary(mtest)
+```
+
+changes the reference category to be "trainee"
+
+```{r}
+lm_sal_job_13 <- lm(salnow ~ edlevel + jobcatrec1 + jobcatrec3, data = sa_data)
+summary(lm_sal_job_13)
+```
+
+USE MARGINS TO GET ADJUSTED MEANS
+
+```{r}
+lm_sal_fjob <- lm(salnow ~ edlevel + factor(jobcatrec), data = sa_data)
+summary(lm_sal_fjob)
+# adjusted salary means for each jobcat, with edlevel constant, i.e., set at its mean 
+margins::prediction(lm_sal_fjob, at = list(jobcatrec=c(1,2,3)))
+
+marginaleffects::avg_comparisons(lm_sal_fjob, variables=list(jobcatrec="pairwise"))
+
+```
+
+```{r}
+# Obtain estimated marginal means at specific levels of education
+margins_jobc<-margins::prediction(lm_sal_fjob, at = list(jobcatrec=c(1,2,3), edlevel = seq(8, 21, by = 1)))
+margins_jobc
+
+ggplot(as.data.frame(margins_jobc), aes(x = edlevel, y = fitted, color = jobcatrec, group = jobcatrec)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), width = 0.2) +
+  labs(title = "Estimated Marginal Means for Job Categories at Each Level of Education",
+       x = "Education Level", y = "Estimated Marginal Means")+
+scale_x_continuous(breaks = seq(8,21,1)) +
+  scale_y_continuous(breaks = seq(5000,30000,5000))
+
+#  plots the lines with shaded confidence intervals
+ggplot(as.data.frame(margins_jobc), aes(x = edlevel, y = fitted, color = jobcatrec, group = jobcatrec)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), alpha = 0.2) +
+  labs(title = "Estimated Marginal Means for Job Categories at Each Level of Education",
+       x = "Education Level", y = "Estimated Marginal Means")+
+scale_x_continuous(breaks = seq(8,21,1)) +
+  scale_y_continuous(breaks = seq(5000,30000,5000))
+```
+
+### COMPARING MEAN DIFFERENCES IN MODELS WITH MORE THAN ONE DUMMY VARIABLE
+
+```{r}
+# Create a summary table showing mean by 'sexrace'
+mean_table <- sa_data %>%
+  group_by(sexrace) %>%
+  summarise(mean_salnow = mean(salnow))
+
+# Print the mean table
+print(mean_table)
+
+lm_sal_sr=lm(salnow ~ male + minority, data=sa_data)
+summary(lm_sal_sr)
+```
+
+```{r}
+# replicate lincom command in STATA
+
+coef(lm_sal_sr)
+mmat2<-rbind(c(0,1,1),c(0,1,-1)) 
+mtest2<-glht(lm_sal_sr,linfct = mmat2)
+summary(mtest2)
+
+```
+
+GENERATE PREDICTED MEANS
+
+```{r}
+margins::prediction(lm_sal_sr, at = list(male=c(0,1), minority=c(0, 1)))
+```
+
+### INTERACTIVE ("SLOPE") DUMMY VARIABLE MODELS
+
+```{r}
+# Generate a new variable agemale
+sa_data$agemale <- sa_data$age * sa_data$male
+
+# Fit the linear regression model
+lm_inter1 <- lm(salnow ~ age + agemale, data = sa_data)
+
+# View the coefficients
+summary(lm_inter1)
+
+slope<-glht(lm_inter1,linfct = rbind(c(0,1,1)))
+summary(slope)
+```
+
+Another way to do this:
+
+```{r}
+# Fit the linear regression model with interaction
+lm_inter2 <- lm(salnow ~ age + age:factor(male), data = sa_data)
+
+# View the coefficients
+summary(lm_inter2)
+
+# Calculates the predicted means for males and females at age=23 and then age=64)
+margins_ma<-margins::prediction(lm_inter2, at = list(male=c(0,1), age=c(23, 64)))
+margins_ma
+
+```
+
+plot
+
+```{r}
+ggplot(as.data.frame(margins_ma), aes(x = age, y = fitted, color = male, group = male)) +
+  geom_point()+
+  geom_line() +
+  geom_errorbar(aes(ymin = fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), width = 0.2) +
+  labs(title = "Estimated Marginal Means for Male at Each Level of Age",
+       x = "Age of Employee", y = "Estimated Marginal Means")+
+scale_x_continuous(breaks = seq(23,64,41)) +
+  scale_y_continuous(breaks = seq(5000,20000,5000))
+```
+
+CALCULATE CONDITIONAL SLOPES, NOT ONLY ADJUSTED (AND UNADJUSTED) MEANS
+
+```{r}
+# Calculate marginal effects for age by male
+marg_effects_age <- margins(lm_inter2, variables = "age", at = list(male = unique(sa_data$male)))
+
+# View the marginal effects
+summary(marg_effects_age)
+```
+
+### INTERACTION/CONDITIONAL RELATIONSHIPS WITH TWO DUMMY VARIABLES
+
+```{r}
+# Fit the linear regression model with interaction
+
+lm_inter3 <- lm(salnow ~ factor(male) * factor(minority), data = sa_data)
+summary(lm_inter3)
+
+avg_comparisons(lm_inter3, variables = c("male", "minority"), cross=T)
+
+# predicted salary means of every combination of male and minority 
+
+margins::prediction(lm_inter3, at = list(male=c(0,1), minority=c(0, 1)))
+print(mean_table)
+```
+
+### SLOPE AND DUMMY VARIABLE MODEL
+
+```{r}
+# BOTH SLOPE AND INTERCEPT DIFFERENCES INCLUDED
+lm_inter4<- lm(salnow~ male + age+ agemale, data=sa_data)
+summary(lm_inter4)
+
+# IS THE SLOPE FOR MEN DIFFERENT FROM 0?
+mmat3<-rbind(c(0,0,1,1)) 
+mtest3<-glht(lm_inter4,linfct = mmat3)
+summary(mtest3)
+```
+
+another way
+
+```{r}
+lm_inter5<-lm(salnow~age*factor(male), data=sa_data)
+summary(lm_inter5)
+
+# Calculates the predicted salary means for males and females at age=23 and then age=64)
+margins_ma2<-margins::prediction(lm_inter5, at=list(male=c(0,1), age = c(23,64)))
+margins_ma2
+
+##plot
+ggplot(as.data.frame(margins_ma2), aes(x = age, y = fitted, color = male, group = male)) +
+  geom_line() +
+  geom_ribbon(aes(ymin =fitted - 2*se.fitted, ymax = fitted + 2*se.fitted), alpha = 0.2) +
+  labs(title = "Estimated Marginal Means for Male at Each Level of Age",
+       x = "Age of Employee", y = "Estimated Marginal Means")+
+scale_x_continuous(breaks = seq(23,64,41)) +
+  scale_y_continuous(breaks = seq(5000,20000,5000))
+```
+
+ESTIMATNG CONDITIONAL SLOPES
+
+```{r}
+# Calculate marginal effects for age by male
+marg_effects_age2 <- margins(lm_inter5, variables = "age", at = list(male = unique(sa_data$male)))
+
+# View the marginal effects
+summary(marg_effects_age2)
+```
+
+## BLINDER-OAXACA DECOMPOSITION
+
+```{r, message=FALSE}
+# Perform Oaxaca-Blinder decomposition
+oaxaca_results <- oaxaca(salnow ~ edlevel | sex, data = sa_data)
+```
+
+```{r}
+# View the results
+summary(oaxaca_results)
+```

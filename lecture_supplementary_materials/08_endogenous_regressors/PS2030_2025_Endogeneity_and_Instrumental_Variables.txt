@@ -1,0 +1,148 @@
+---
+title: "Endogeneity and Instrumental Variables"
+date: "2023-12-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(AER)
+```
+
+load data
+
+```{r}
+prot_data <- read_dta("Data Files/protest.homework1.dta")
+```
+
+YOU WANT THE EFFECT OF PROTEST ON JOINING PROTEST-ORIENTED GROUPS, BUT YOU THINK THERE IS RECIPROCAL CAUSALITY SUCH THAT GROUP MEMBERSHIPS ALSO CAUSE PROTEST
+
+\*\*\* SO YOU NEED INSTRUMENT(S) FOR PROTEST
+
+\*\* YOU DECIDE ON EDUCATION AND POLITICAL EFFICACY AS POTENTIAL INSTRUMENTS FOR PROTEST.\
+\*\* YOU ARE PREPARED TO CLAIM THAT THESE VARIABLES CAUSE PROTEST \*\* BUT NOT GROUP MEMBERSHIPS EXCEPT THROUGH PROTEST, AND YOU ARE PREPARED TO CLAIM THAT THEY ARE EXOGENOUS, I.E., UNRELATED TO THE ERROR TERM IN PROTEST AND GROUP MEMBERSHIP EQUATIONS
+
+\*\*(THIS WOULD NOT WASH IN ALL LIKELIHOOD BUT WE ARE ILLUSTRATING FOR PEDAGOGICAL PURPOSES).
+
+## BASIC IV ANALYSIS
+
+USE education only
+
+GENERATE COVARIANCES BETWEEN LR LEGALCOUNT EDUC
+
+```{r}
+prot_no_missing <- na.omit(prot_data[, c("lr", "legalcount", "educ")])
+
+# Calculate covariance
+covariance_matrix <- cov(prot_no_missing[c("lr", "legalcount", "educ")])
+
+print("Covariance Matrix:")
+print(covariance_matrix)
+```
+
+Instrument estimate: the covariance of lr&educ (the instrument) divided by the covariance of legalcount&educ
+
+```{r}
+0.152/1.00876 
+```
+
+0.151 is the IV estimate of the causal effect of ENDOGENOUS X (LEGALCOUNT) on Y
+
+### ANOTHER WAY TO ESTIMATE THIS IS VIA INDIRECT LEAST SQUARES
+
+```{r}
+#"reduced form" of Y on Z
+lm_lr<- lm(lr~educ, data = prot_data)
+summary(lm_lr)
+# "reduced form" of X on Z
+lm_legal<- lm(legalcount~ educ, data=prot_data)
+summary(lm_legal)
+
+print("our estimate of the causal effect of ENDOGENOUS X (LEGALCOUNT) on Y is")
+coef(lm_lr)["educ"]/ coef(lm_legal)["educ"]
+```
+
+### FINAL WAY VIA 2SLS ROUTINE, WHICH CAN BE USED FOR ALL IV MODELS
+
+use AER package
+
+```{r}
+# Run 2SLS using ivreg function
+ivmodel <- ivreg(lr ~ legalcount | educ, data =prot_data)
+
+# Display the results
+summary(ivmodel)
+
+lm_basic<-lm(lr~legalcount,data=prot_data)
+summary(lm_basic)
+
+```
+
+NOTE HUGE DIFFERENCE IN OLS AND IV STANDARD ERROR!!! WE SACRIFICE EFFICIENCY IN 2SLS FOR CONSISTENCY (BUT SOMETIMES MAY NOT BE WORTH IT)
+
+Note: standard errors in R and Stata are slightly different because R always uses small sample corrections while Stata only uses those when explicitly asked for.
+
+### EXTENDED INDIRECT LEAST SQUARES ANALYSIS, STILL WITH ONLY EDUC AS THE ONE INSTRUMENT FOR LEGALCOUNT
+
+```{r}
+# gives all reduced form effects on Y
+lm_lr_m<-lm(lr~ educ +lgrp+sex+youth+a, data=prot_data)
+summary(lm_lr_m)
+
+#gives all reduced form effects on X
+lm_legal_m<-lm(legalcount~ educ +lgrp+sex+youth+a, data=prot_data)
+summary(lm_legal_m)
+
+print("our estimate of the causal effect of ENDOGENOUS X (LEGALCOUNT) on Y is")
+coef(lm_lr_m)["educ"]/ coef(lm_legal_m)["educ"]
+```
+
+2SLS VERSION OF THIS JUST-IDENTIFIED MODEL model: `model <- ivreg(y ~ exogenous variable + endogenous variable | instrument + exogenous variable, data =data)`
+
+```{r}
+ivmodel_m <- ivreg(lr ~ lgrp+sex+youth+a+legalcount | educ +lgrp+sex+youth+a, data =prot_data)
+summary(ivmodel_m)
+```
+
+### 2SLS ESTIMATION OF THE OVERIDENTIFIED MODEL WITH EDUCATION AND EFFICACY AS INSTRUMENTS
+
+```{r}
+ivmodel_o <- ivreg(lr ~ lgrp+sex+youth+a+legalcount | educ +il+lgrp+sex+youth+a, data =prot_data)
+
+summary(ivmodel_o, diagnostics = TRUE)
+```
+
+Interpretation of diagnostics:
+
+1.  Weak instruments means that the instrument has a low correlation with the endogenous explanatory variable. This could result in a larger variance in the coefficient, and severe finite-sample bias. Null is that the instrument is weak.
+
+2.  Wu-Hausman tests that IV is just as consistent as OLS, and since OLS is more efficient, it would be preferable. The null here is that they are equally consistent
+
+3.  Sargan tests overidentification restrictions. The idea is that if you have more than one instrument per endogenous variable, the model is overidentified, and you have some excess information. All of the instruments must be valid for the inferences to be correct. So it tests that all exogenous instruments are in fact exogenous, and uncorrelated with the model residuals. If it is significant, it means that you don't have valid instruments \### ANTONAKIS ENDOGENEITY EXAMPLE True model is `Y=-.3X + 1Q` (SEE SLIDE IN ENDOGENEITY POWERPOINT)
+
+TRUE MODEL HAS M AND N CAUSING X BUT NOT Y, SO THEY ARE PERFECT INSTRUMENTS TO USE FOR ENDOGENOUS X
+
+```{r, eval = FALSE}
+model_b<-lm(y~x,data=data) # OMITTED VARIABLE Q SHOULD BE THERE, SO ESTIMATE IS INCONSISTENT
+model_2sls<-ivreg(y~x|m+n, data=data)
+summary(model_2sls, diagnostics = TRUE)
+```
+
+### ALTERNATIVE ESTIMATION: "TWO STAGE RESIDUAL INCLUSION"
+
+PROCEDURE: 1) REGRESS ENDOGENOUS X ON THE INSTRUMENT(S)
+
+2)  GENERATE RESIDUAL FROM THIS EQUATION, WHICH REPRESENTS THE "ENDOGENOUS" PORTION OF THE X VARIABLE, I.E., UNRELATED TO THE EXOGENOUS INSTRUMENTS
+
+3)  REGRESS Y ON X AND THE FIRST STAGE RESIDUAL, SO THAT THE EFFECT OF X IS ESTIMATED BY MANUALLY "CONTROLLING" FOR THE ENDOGENEITY IN THE ORIGINAL X-Y RELATIONSHIP
+
+SEE TERZA ET. AL. "Two-stage residual inclusion estimation: Addressing endogeneity in health econometric modeling" Journal of Health Economics 27 (2008) 531--543.
+
+```{r, eval = FALSE}
+model_1<-lm(x~m+n, data=data)
+data$resid1=model_1$residuals
+model_2<-lm(y~resid1, data=data)
+```
+
+True model: `model_true<-lm(y~x+q, data=data)`
