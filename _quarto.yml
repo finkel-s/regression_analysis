@@ -34,6 +34,7 @@ format:
       - toggle
     css: styles.css
     toc: true
+    include-in-header: "_includes/google-verify.html"
     
 editor: visual
 
