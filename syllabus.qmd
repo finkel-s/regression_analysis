@@ -70,17 +70,17 @@ The course is organized by units and then topics within units. We will maintain 
 
 #### 4. [Multiple Regression](materials.html#multiple-regression)
 
--   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapter 5: pp. 129--133, Chapter 6: pp. 157--159, and Chapters 7--8. 
--   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapters 3--5. 
+-   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapter 5: pp. 129--133, Chapter 6: pp. 157--159, and Chapters 7--8.\
+-   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapters 3--5.\
 -   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapter 2, Section 2.3.
 
 #### 5. [Dummy Variable Regression](materials.html#dummy-variable-regression)
 
--   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapter 9. 
--   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapters 7 and 10. 
--   Nguyen, Trang Quynh, Ian Schmid, and Elizabeth A Stuart. 2020. "Clarifying Causal Mediation Analysis for the Applied Researcher: Defining Effects Based on What We Want to Learn." *Psychological Methods* 26(2): 255--271. 
--   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 7 to p. 223. *(Optional)* 
--   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapter 8. *(Optional)* 
+-   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapter 9.\
+-   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapters 7 and 10.\
+-   Nguyen, Trang Quynh, Ian Schmid, and Elizabeth A Stuart. 2020. "Clarifying Causal Mediation Analysis for the Applied Researcher: Defining Effects Based on What We Want to Learn." *Psychological Methods* 26(2): 255--271.\
+-   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 7 to p. 223. *(Optional)*\
+-   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapter 8. *(Optional)*\
 -   StataCorp. 2023. *Stata Causal Inference and Treatment-Effects Estimation Reference Manual*, Release 18, pp. 188--219. *(Optional)*
 
 ### Unit 2: Regression Models: Extensions and Problems
@@ -88,40 +88,40 @@ The course is organized by units and then topics within units. We will maintain 
 #### 1. [Functional Form: Non-Linear and Non-Additive Models](materials.html#functional-form)
 
 -   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapter 6: pp. 159--175, and Chapter 13: 470--482, 486--498.\
--   Brambor, Thomas, William R. Clark, and Matt Golder. 2006. "Understanding Interaction Models: Improving Empirical Analyses." *Political Analysis* 14: 63--82. 
--   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapters 3 and 5. 
--   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 6. *(Optional)* 
+-   Brambor, Thomas, William R. Clark, and Matt Golder. 2006. "Understanding Interaction Models: Improving Empirical Analyses." *Political Analysis* 14: 63--82.\
+-   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapters 3 and 5.\
+-   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 6. *(Optional)*\
 -   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapter 11. *(Optional)*
 
 #### 2. [Violations of Assumptions: Multicollinearity, Heteroskedasticity, Autocorrelation](materials.html#violations-of-assumptions)
 
--   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapters 10--12. 
+-   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapters 10--12.\
 -   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapters 8, 10--11. *(Optional)*
 
 #### 3. [Endogenous Regressors](materials.html#endogenous-regressors)
 
--   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapter 13: pp. 482--486. \
--   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 15. 
--   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 16. *(Optional)* 
+-   Gujarati, Damodar N., and Dawn C. Porter. 2009. *Basic Econometrics*. New York: McGraw-Hill Education, Chapter 13: pp. 482--486.\
+-   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 15.\
+-   Wooldridge, Jeffrey M. 2015. *Introductory Econometrics: A Modern Approach*. Boston, MA: Cengage Learning, Chapter 16. *(Optional)*\
 -   Maydeu-Olivares, Albert, Dexin Shi, and Amanda J. Fairchild. 2020. "Estimating Causal Effects in Linear Regression Models With Observational Data: The Instrumental Variables Regression Model." *Psychological Methods* 25(5): 243-258.
 
 ### Unit 3: Models for Non-Continuous Dependent Variables
 
 #### 1. [Introduction to Logit and Probit Models](materials.html#logit-probit-intro)
 
--   Long, J. Scott. 1997. *Regression Models for Categorical and Limited Dependent Variables*. Thousand Oaks, CA: Sage Publications, Inc., Chapters 1 and 3 to p. 52. 
+-   Long, J. Scott. 1997. *Regression Models for Categorical and Limited Dependent Variables*. Thousand Oaks, CA: Sage Publications, Inc., Chapters 1 and 3 to p. 52.\
 -   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapter 18, Sections 18.1--18.2.
 
 #### 2. [Estimation and Interpretation of Logit and Probit Models](materials.html#logit-probit-interpretation)
 
--   Long, J. Scott. 1997. *Regression Models for Categorical and Limited Dependent Variables*. Thousand Oaks, CA: Sage Publications, Inc., Chapter 2 (especially pp. 25--33), pp. 52--end, and Chapter 4. 
--   Hanmer, Michael J., and Kerem Ozan Kalkan. 2013. "Behind the Curve: Clarifying the Best Approach to Calculating Predicted Probabilities and Marginal Effects from Limited Dependent Variable Models." *American Journal of Political Science* 57(1): 263--277. 
+-   Long, J. Scott. 1997. *Regression Models for Categorical and Limited Dependent Variables*. Thousand Oaks, CA: Sage Publications, Inc., Chapter 2 (especially pp. 25--33), pp. 52--end, and Chapter 4.\
+-   Hanmer, Michael J., and Kerem Ozan Kalkan. 2013. "Behind the Curve: Clarifying the Best Approach to Calculating Predicted Probabilities and Marginal Effects from Limited Dependent Variable Models." *American Journal of Political Science* 57(1): 263--277.\
 -   Long, J. Scott, and Jeremy Freese. 2014. *Regression Models for Categorical Dependent Variables Using Stata*. College Station, TX: Stata Press, Chapters 3--6. *(Optional)*
 
 #### 3. [Models for Ordinal and Nominal Outcomes](materials.html#ordinal-nominal)
 
--   Long, J. Scott. 1997. *Regression Models for Categorical and Limited Dependent Variables*. Thousand Oaks, CA: Sage Publications, Inc., Chapters 5--6. 
--   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapter 18, Sections 18.3--18.4. 
+-   Long, J. Scott. 1997. *Regression Models for Categorical and Limited Dependent Variables*. Thousand Oaks, CA: Sage Publications, Inc., Chapters 5--6.\
+-   Mitchell, Michael. 2021. *Interpreting and Visualizing Regression Models Using Stata*, 2nd Edition. Stata Press, Chapter 18, Sections 18.3--18.4.\
 -   Long, J. Scott, and Jeremy Freese. 2014. *Regression Models for Categorical Dependent Variables Using Stata*. College Station, TX: Stata Press, Chapters 7--8. *(Optional)*
 
 ### Unit 4: Models for Causal Inference
@@ -132,18 +132,18 @@ The course is organized by units and then topics within units. We will maintain 
 
 #### 2. [Selection on Observables: Regression and Matching](materials.html#observables-matching)
 
--   Angrist, Joshua D., and Jörn-Steffen Pischke. 2009. *Mostly Harmless Econometrics: An Empiricist's Companion*. Princeton University Press, Chapter 3. 
--   Gangl, Thomas. 2015. "Matching Estimators for Treatment Effects." In *The SAGE Handbook of Regression Analysis and Causal Inference*, edited by Henning Best and Christof Wolf, London: Sage Publications, Inc., pp. 251--276. 
+-   Angrist, Joshua D., and Jörn-Steffen Pischke. 2009. *Mostly Harmless Econometrics: An Empiricist's Companion*. Princeton University Press, Chapter 3.\
+-   Gangl, Thomas. 2015. "Matching Estimators for Treatment Effects." In *The SAGE Handbook of Regression Analysis and Causal Inference*, edited by Henning Best and Christof Wolf, London: Sage Publications, Inc., pp. 251--276.\
 -   Morgan, Stephen L., and Christopher Winship. 2007. *Counterfactuals and Causal Inference: Methods and Principles for Social Research*. Cambridge University Press, Chapters 3--4. *(Optional)*
 
 #### 3. [Selection on Unobservables: Instrumental Variables and Difference-in-Differences](materials.html#unobservables-iv-did)
 
--   Angrist, Joshua D., and Jörn-Steffen Pischke. 2009. *Mostly Harmless Econometrics: An Empiricist's Companion*. Princeton University Press, Chapters 4--5. 
--   Sovey, Allison J., and Donald P. Green. 2011. "Instrumental Variables Estimation in Political Science: A Reader's Guide." *American Journal of Political Science* 55(1): 188--200. *(Optional)* 
+-   Angrist, Joshua D., and Jörn-Steffen Pischke. 2009. *Mostly Harmless Econometrics: An Empiricist's Companion*. Princeton University Press, Chapters 4--5.\
+-   Sovey, Allison J., and Donald P. Green. 2011. "Instrumental Variables Estimation in Political Science: A Reader's Guide." *American Journal of Political Science* 55(1): 188--200. *(Optional)*\
 -   Muller, Christopher, Christopher Winship, and Stephen L. Morgan. 2015. "Instrumental Variables Regression." In *The SAGE Handbook of Regression Analysis and Causal Inference*, edited by Henning Best and Christof Wolf, London: Sage Publications, Inc., pp. 277--299. *(Optional)*
 
 #### 4. [Fixed Effects and Panel Models](materials.html#fixed-effects-panel)
 
--   Allison, Paul D. 2009. *Fixed Effects Regression Models*. Thousand Oaks, CA: Sage Publications, Inc., Chapter 2. 
+-   Allison, Paul D. 2009. *Fixed Effects Regression Models*. Thousand Oaks, CA: Sage Publications, Inc., Chapter 2.\
 -   Bell, Andrew, and Kelvyn Jones. 2015. "Explaining Fixed Effects: Random Effects Modeling of Time Series Cross-Section and Panel Data." *Political Science Research and Methods* 3(1): 133--153.
 :::
