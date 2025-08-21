@@ -19,7 +19,7 @@ website:
         text: Syllabus
       - href: materials.qmd
         text: Materials
-      - href: https://finkel-s.github.io/teaching.html
+      - href: https://www.stevenfinkel.com/teaching.html
         text: "Other Courses"
 
 format:

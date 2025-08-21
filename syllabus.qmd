@@ -1,6 +1,6 @@
 ---
 title: "Regression Analysis"
-author: "<a href='https://finkel-s.github.io/about.html' target='_blank'><strong>Steven E. Finkel</strong></a><br><a href='mailto:finkel@pitt.edu'>📧 finkel@pitt.edu</a>"
+author: "<a href='https://www.stevenfinkel.com/about.html' target='_blank'><strong>Steven E. Finkel</strong></a><br><a href='mailto:finkel@pitt.edu'>📧 finkel@pitt.edu</a>"
 format:
   html:
     toc: true
